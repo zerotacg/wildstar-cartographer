@@ -25,10 +25,15 @@ end
 
 --------------------------------------------------------------------------------
 function M:path( unit )
-    local path = { self.type }
-    if unit then
-        table.insert( path, self:skill( unit ) )
-        table.insert( path, unit:GetMiniMapMarker() )
+    local path    = { self.type }
+    local folders = {
+        self:skill( unit )
+      , unit:GetName()
+    }
+    for i, folder in ipairs( folders) do
+        if folder then
+            table.insert( path, folder )
+        end
     end
     return path
 end
@@ -55,8 +60,20 @@ function M:data( unit )
 end
 
 -------------------------------------------------------------------------------
-local Cartographer = Apollo.GetAddon("Cartographer")
-Cartographer:addCategory( M:new() )
+function M:marker( unit )
+    local tInfo =
+    {   strIcon       = unit:GetMiniMapMarker()
+      , strIconEdge   = ""
+      , crObject      = CColor.new(1, 1, 1, 1)
+      , crEdge        = CColor.new(1, 1, 1, 1)
+      , bAboveOverlay = false
+    }
+    return tInfo
+end
+
+-------------------------------------------------------------------------------
+local Addon = Apollo.GetAddon("Gathermate")
+Addon:addCategory( M:new() )
 
 -------------------------------------------------------------------------------
 return M

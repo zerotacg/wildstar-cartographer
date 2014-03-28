@@ -2,15 +2,16 @@ require "Apollo"
 require "Vector3"
 
 local LibStub = _G["LibStub"]
-local LibVentilator = LibStub:GetLibrary( "LibVentilator-0", 3 )
+local LibVentilator = LibStub:GetLibrary( "LibVentilator-0", 0 )
+local LibSpatial    = LibStub:GetLibrary( "LibSpatial-0", 0 )
 
 --------------------------------------------------------------------------------
 local M = {
     VERSION = { MAJOR = 0, MINOR = 0, PATCH = 0 }
   , MIN_NODE_DISTANCE = 1.0
   , enabled = {
-        ["Collectible"]   = true
-      , ["ALL"]           = true
+        ["Collectible"] = false
+      , ["ALL"]         = false
     }
 } 
 
@@ -26,16 +27,20 @@ end
 --------------------------------------------------------------------------------
 function M:init()
     self.categories = {}
-    self.data = {}
-    self.paths = {}
+    self.database = {}
 
     local bHasConfigureFunction = false
-    local strConfigureButtonText = "Cartographer"
+    local strConfigureButtonText = "Gathermate"
     local tDependencies = {
         "MiniMap"
       , "ZoneMap"
     }
     Apollo.RegisterAddon( self, bHasConfigureFunction, strConfigureButtonText, tDependencies )
+end
+
+--------------------------------------------------------------------------------
+function M:clear()
+    self.database = {}
 end
 
 --------------------------------------------------------------------------------
@@ -46,7 +51,9 @@ function M:OnLoad()
         MiniMap = MiniMap.wndMiniMap 
       , ZoneMap = ZoneMap.wndZoneMap
     }
-    self.map = LibVentilator.new( subs )
+
+    self.map = LibVentilator:new( subs )
+    self.objectType = self.map:CreateOverlayType()
    
     Apollo.LoadSprites("harvest_sprites.xml")
 
@@ -63,7 +70,7 @@ function M:OnSave(eLevel)
     
     return {
         VERSION = self.VERSION
-      , data = self.data
+      , database = self.database
     }
 end 
 
@@ -71,12 +78,11 @@ end
 function M:OnRestore(eLevel, tData)
     if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end
     
-    self.data = tData.data or self.data
-    self.paths = tData.paths or self.paths
+    self.database = tData.database or self.database
 
-    for i, data in ipairs( self.data.Harvest.Mining.TitaniumNode ) do
-        self:addMarker( data )
-    end
+    --for i, data in ipairs( self.database.Harvest.Mining.TitaniumNode ) do
+    --    self:addMarker( data )
+    --end
     --self:loadPaths()
 end 
 
@@ -90,19 +96,27 @@ end
 
 --------------------------------------------------------------------------------
 function M:OnUnitCreated( unit )
-    local type = unit:GetType()
-    local category = self.categories[type] or self
+    for i, category in ipairs( self.categories ) do
+        if category:accepts( unit ) then
+            local path    = category:path( unit )
+            local data    = M.apply( self:data( unit ), category:data( unit ) )
+            local marker  = M.apply( self:marker( unit ), category:marker( unit ) )
+            return self:add( path, data, marker )
+        end
+    end
+    
+    local category = self
     if category:accepts( unit ) then
         local path    = category:path( unit )
         local data    = M.apply( self:data( unit ), category:data( unit ) )
         local marker  = M.apply( self:marker( unit ), category:marker( unit ) )
-        self:add( path, data, marker )
+        return self:add( path, data, marker )
     end
 end 
 
 --------------------------------------------------------------------------------
 function M:addCategory( category )
-    self.categories[category:path()] = category
+    table.insert( self.categories, category )
 end
 
 -------------------------------------------------------------------------------
@@ -130,10 +144,10 @@ end
 
 --------------------------------------------------------------------------------
 function M:entries( path )
-    local data = self.data
+    local database = self.database
     path = table.concat( path, "/")
-    data[path] = data[path] or {}
-    return data[path]
+    database[path] = database[path] or {}
+    return database[path]
 end 
 
 --------------------------------------------------------------------------------
@@ -154,21 +168,18 @@ function M:add( path, data, marker )
     
     if self:contains( entries, data ) then return end
     
-    self:insert( entries, entry )
+    self:insert( entries, data )
     if marker then
-        self:addMarker( marker )
+        self:addMarker( data, marker )
     end
 end 
 
 --------------------------------------------------------------------------------
-function M:addMarker( marker )
-    local kstrMiningNodeIcon  = "IconSprites:Icon_TradeskillMisc_Titanium_Ore"
-    local kcrMiningNode       = CColor.new(0.2, 1.0, 1.0, 1.0)
-
-    local objectType = self.eObjectTypeMiningNode
+function M:addMarker( data, marker )
+    local objectType = 1
     local tMarkerOptions = { bNeverShowOnEdge = true, bAboveOverlay = false }
 
-    self.map:AddObject( objectType, data.position, data.name, tInfo, tMarkerOptions )
+    self.map:AddObject( objectType, data.position, data.name, marker, tMarkerOptions )
 end 
 
 --------------------------------------------------------------------------------
@@ -195,39 +206,8 @@ function M.apply( tDestination, tSource )
     for k,v in pairs( tSource ) do
         tDestination[k] = tSource[k]
     end
+    return tDestination
 end 
-
---------------------------------------------------------------------------------
-
---[[
-function ZoneMap:DrawGroupMembers()
-  self:DestroyGroupMarkers()
-
-  local tInfo = {}
-  for idx, tMember in pairs(self.tGroupMembers) do
-    local tInfo = GroupLib.GetGroupMember(idx)
-    if tInfo.bIsOnline then
-      local bNeverShowOnEdge = true
-      if tMember.bInCombatPvp then
-        tInfo.strIconEdge = "sprMM_Group"
-        tInfo.crObject    = CColor.new(0, 1, 0, 1)
-        tInfo.crEdge    = CColor.new(0, 1, 0, 1)
-        bNeverShowOnEdge = false
-      else
-        tInfo.strIconEdge = ""
-        tInfo.crObject    = CColor.new(1, 1, 1, 1)
-        tInfo.crEdge    = CColor.new(1, 1, 1, 1)
-        bNeverShowOnEdge = true
-      end
-
-      local strNameFormatted = string.format("<T Font=\"CRB_InterfaceMedium_B\" TextColor=\"ff31fcf6\">%s</T>", tMember.strName)
-      strNameFormatted = String_GetWeaselString(Apollo.GetString("ZoneMap_AppendGroupMemberLabel"), strNameFormatted)
-      self.tGroupMemberObjects[idx] = self.wndZoneMap:AddObject(1, tMember.tWorldLoc, strNameFormatted, tInfo, {bNeverShowOnEdge = bNeverShowOnEdge})
-    end
-  end
-end
-
-]]
 
 --------------------------------------------------------------------------------
 return M:new()

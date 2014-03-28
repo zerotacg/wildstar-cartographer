@@ -31,25 +31,4 @@ function M:new( subs )
 end
 
 --------------------------------------------------------------------------------
-function M:init()
-    local bHasConfigureFunction = false
-    local strConfigureButtonText = ""
-    local tDependencies = {
-        "MiniMap"
-      , "ZoneMap"
-    }
-    Apollo.RegisterAddon( self, bHasConfigureFunction, strConfigureButtonText, tDependencies )
-end
-
---------------------------------------------------------------------------------
-function M:OnLoad()
-    local MiniMap = Apollo.GetAddon("MiniMap")
-    local ZoneMap = Apollo.GetAddon("ZoneMap")
-    self.subs = {
-        MiniMap = MiniMap.wndMiniMap 
-      , ZoneMap = ZoneMap.wndZoneMap
-    }
-end
-
---------------------------------------------------------------------------------
 return M
