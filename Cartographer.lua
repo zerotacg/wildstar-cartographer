@@ -1,11 +1,14 @@
 require "Apollo"
 require "Vector3"
 
+local LibStub = _G["LibStub"]
+local LibVentilator = LibStub:GetLibrary( "LibVentilator-0", 3 )
+
 --------------------------------------------------------------------------------
 local M = {
     VERSION = { MAJOR = 0, MINOR = 0, PATCH = 0 }
   , MIN_NODE_DISTANCE = 1.0
-  , add_all = {
+  , enabled = {
         ["Collectible"]   = true
       , ["ALL"]           = true
     }
@@ -36,16 +39,14 @@ function M:init()
 end
 
 --------------------------------------------------------------------------------
-function M:addCategory( category )
-    self.categories[category:path()] = category
-end
-
---------------------------------------------------------------------------------
 function M:OnLoad()
-    self.MiniMap = Apollo.GetAddon("MiniMap")
-    self.ZoneMap = Apollo.GetAddon("ZoneMap")
-    self.wndZoneMap = self.ZoneMap.wndZoneMap
-    self.eObjectTypeMiningNode = self.wndZoneMap:CreateOverlayType()
+    local MiniMap = Apollo.GetAddon("MiniMap")
+    local ZoneMap = Apollo.GetAddon("ZoneMap")
+    local subs = {
+        MiniMap = MiniMap.wndMiniMap 
+      , ZoneMap = ZoneMap.wndZoneMap
+    }
+    self.map = LibVentilator.new( subs )
    
     Apollo.LoadSprites("harvest_sprites.xml")
 
@@ -99,6 +100,11 @@ function M:OnUnitCreated( unit )
     end
 end 
 
+--------------------------------------------------------------------------------
+function M:addCategory( category )
+    self.categories[category:path()] = category
+end
+
 -------------------------------------------------------------------------------
 function M:accepts( unit )
     local type = unit:GetType()
@@ -131,7 +137,7 @@ function M:entries( path )
 end 
 
 --------------------------------------------------------------------------------
-function M:GetDefaultUnitInfo()
+function M:marker()
     local tInfo =
     {   strIcon       = "MiniMapMarkerTiny"
       , strIconEdge   = ""
@@ -155,20 +161,14 @@ function M:add( path, data, marker )
 end 
 
 --------------------------------------------------------------------------------
-function M:addMarker( data )
+function M:addMarker( marker )
     local kstrMiningNodeIcon  = "IconSprites:Icon_TradeskillMisc_Titanium_Ore"
     local kcrMiningNode       = CColor.new(0.2, 1.0, 1.0, 1.0)
 
-    local tInfo = self:GetDefaultUnitInfo()
-    --tInfo.strIcon   = kstrMiningNodeIcon
-    tInfo.crObject  = kcrMiningNode
-    tInfo.crEdge    = kcrMiningNode
-    tInfo.fRadius   = 1
-    
     local objectType = self.eObjectTypeMiningNode
     local tMarkerOptions = { bNeverShowOnEdge = true, bAboveOverlay = false }
 
-    self.wndZoneMap:AddObject( objectType, data.position, data.name, tInfo, tMarkerOptions )
+    self.map:AddObject( objectType, data.position, data.name, tInfo, tMarkerOptions )
 end 
 
 --------------------------------------------------------------------------------
