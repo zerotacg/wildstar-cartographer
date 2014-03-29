@@ -4,6 +4,6 @@
     <Script Name="lib/LibSpatial.lua"/>
     <Script Name="lib/LibMarker.lua"/>
     <Script Name="Gathermate.lua"/>
-    <Script Name="category/harvest.lua"/>
+    <!--Script Name="category/harvest.lua"/-->
     <Form Name="Gathermate.xml"/>
 </Addon>

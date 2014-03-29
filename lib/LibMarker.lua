@@ -14,7 +14,16 @@ local function index( table, name )
         return v
     end
   
-    return table.index
+    return function( self, ... )
+        local maps = self.maps
+        local result = {}
+    
+        for k, map in pairs( maps ) do
+            result[k] = map[name](map, ...)
+        end
+    
+        return result
+    end
 end 
 setmetatable( M, { __index = index } )
 
@@ -22,20 +31,9 @@ setmetatable( M, { __index = index } )
 function M:new( o )
     o = o or {}
     setmetatable( o, { __index = self } )
-    o.maps = o.maps or {}
+    o.maps = {}
 
     return o
-end
---------------------------------------------------------------------------------
-function M:index( ... )
-    local maps = self.maps
-    local result = {}
-
-    for k, map in pairs( maps ) do
-        result[k] = map[name](map, ...)
-    end
-
-    return result
 end
 
 --------------------------------------------------------------------------------

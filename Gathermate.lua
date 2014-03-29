@@ -11,6 +11,11 @@ local LibMarker = LibStub:GetLibrary( "LibMarker-0", 0 )
 local LibSpatial = LibStub:GetLibrary( "LibSpatial-0", 0 )
 
 --------------------------------------------------------------------------------
+local function axisPositionXYZ( self, ...)
+    return LibSpatial.axisXYZ( self.position, ... )
+end 
+
+--------------------------------------------------------------------------------
 -- @type Gathermate
 -- @field #wildstar.Window wndSettings
 -- @field #wildstar.TreeControl wndDataTree
@@ -19,12 +24,18 @@ local LibSpatial = LibStub:GetLibrary( "LibSpatial-0", 0 )
 local M = {
     VERSION = { MAJOR = 0, MINOR = 0, PATCH = 0 }
   , MIN_NODE_DISTANCE = 1.0
-  , Container = LibSpatial.kdtree:template( 3 )
+  , Container = LibSpatial.kdtree:template( 3, axisPositionXYZ )
   , enabled = {
-        ["Collectible"] = false
-      , ["ALL"]         = false
+        ["Collectible"]           = false
+      , ["Harvest/Mining"]        = true
+      , ["Harvest/Relic Hunter"]  = true
+      , ["Harvest/Farmer"]        = true
+      , ["Harvest/Survivalist"]   = true
+      , ["Harvest"]               = true
+      , ["All"]                   = false
     }
 } 
+M.MIN_NODE_DISTANCE_SQUARED = M.MIN_NODE_DISTANCE * M.MIN_NODE_DISTANCE
 
 --------------------------------------------------------------------------------
 function M:new( o )
@@ -37,7 +48,6 @@ end
 
 --------------------------------------------------------------------------------
 function M:init()
-    self.categories = {}
     self.database = {}
     self.nodes = {}
     self.tSelectedNode = nil
@@ -52,24 +62,43 @@ function M:init()
 end
 
 --------------------------------------------------------------------------------
+function M:subPath( fullPath, subPath )
+    local folder = subPath .. "/"
+    return fullPath == subPath or string.sub( fullPath, 1, string.len( folder ) ) == folder
+end
+
+--------------------------------------------------------------------------------
 function M:clear( strPath )
     local database = self.database
-    local nodes = self.nodes
-    local wndTree = self.wndDataTree
     strPath = strPath or ""
 
-    for i, path in ipairs( database ) do
-        if string.sub( path, 1, string.len(strPath) ) == strPath then
+    for path in pairs( database ) do
+        if self:subPath( path, strPath ) then
             database[path] = nil
         end
     end
-
-    for i, path in ipairs( nodes ) do
-        if string.sub( path, 1, string.len(strPath) ) == strPath then
-            wndTree:DeleteNode( nodes[path] )
-            nodes[path] = nil
-        end
+    
+    local nodes = self.nodes
+    local wndTree = self.wndDataTree
+    if strPath == "" then
+        nodes = {}
+        wndTree:DeleteAll()
+        return
     end
+    
+    local tNode, parent, folder
+    for strFolder in string.gmatch( strPath, "([^/]+)" ) do
+        parent = nodes
+        folder = strFolder
+        if not nodes[strFolder] then
+            return
+        end
+        tNode = nodes[strFolder].tNode
+        nodes = nodes[strFolder].children
+    end
+    
+    wndTree:DeleteNode( tNode )
+    parent[folder] = nil
 end
 
 --------------------------------------------------------------------------------
@@ -109,10 +138,8 @@ function M:OnDocLoaded()
       
         self.wndSettings:Show( false, true )
         self.xmlDoc = nil
-
-        for path, entries in pairs( self.database ) do
-            self:addPath( path )
-        end
+        
+        self:buildTree()
     end
 end
 
@@ -120,9 +147,14 @@ end
 function M:OnSave(eLevel) 
     if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end 
     
+    local database = {}
+    for path, entries in pairs( self.database ) do
+        database[path] = entries.data
+    end
+    
     return {
         VERSION = self.VERSION
-      , database = self.database
+      , database = database
     }
 end 
 
@@ -167,6 +199,15 @@ function M:updateButtonState()
 end
 
 --------------------------------------------------------------------------------
+function M:buildTree()
+    self.nodes = {}
+    self.wndDataTree:DeleteAll()
+    for path, entries in pairs( self.database ) do
+        self:addPath( path )
+    end
+end
+
+--------------------------------------------------------------------------------
 function M:OnDeleteClick()
     local tNode = self.tSelectedNode
     local wndTree = self.wndDataTree
@@ -181,49 +222,33 @@ end
 
 --------------------------------------------------------------------------------
 function M:OnUnitCreated( unit )
-    for i, category in ipairs( self.categories ) do
-        if category:accepts( unit ) then
-            local path    = category:path( unit )
-            local data    = M.apply( self:data( unit ), category:data( unit ) )
-            local marker  = M.apply( self:marker( unit ), category:marker( unit ) )
-            return self:add( path, data, marker )
-        end
-    end
-    
-    local category = self
-    if category:accepts( unit ) then
-        local path    = category:path( unit )
-        local data    = M.apply( self:data( unit ), category:data( unit ) )
-        local marker  = M.apply( self:marker( unit ), category:marker( unit ) )
-        return self:add( path, data, marker )
+    if self:accepts( unit ) then
+        local path    = table.concat( self:path( unit ), "/" )
+        local data    = self:data( unit )
+        return self:add( path, data )
     end
 end 
 
 --------------------------------------------------------------------------------
-function M:addCategory( category )
-    table.insert( self.categories, category )
-end
-
---------------------------------------------------------------------------------
 function M:addPath( strPath )
     local nodes = self.nodes
-    local tCurrent = {}
     local wndTree = self.wndDataTree
+    local current = {}
     local tNode = 0
     
     if not wndTree then return end 
 
     for strFolder in string.gmatch( strPath, "([^/]+)" ) do
-        table.insert( tCurrent, strFolder )
-        local strPath = table.concat( tCurrent, "/")
-        if not nodes[strPath] then
+        table.insert( current, strFolder )
+        if not nodes[strFolder] then
             local strIcon = nil
-            local tData = { strPath = strPath }
+            local tData = { strPath = table.concat( current, "/" ) }
             tNode = wndTree:AddNode( tNode, strFolder, strIcon, tData )
-            nodes[strPath] = tNode
+            nodes[strFolder] = { tNode = tNode, children = {} }
             wndTree:CollapseNode( tNode )
         end
-        tNode = nodes[strPath]
+        tNode = nodes[strFolder].tNode
+        nodes = nodes[strFolder].children
     end
 end
 
@@ -238,7 +263,17 @@ end
 
 -------------------------------------------------------------------------------
 function M:path( unit )
-    return { unit:GetType() }
+    local path    = { unit:GetType() }
+    local folders = {
+        unit:GetHarvestRequiredTradeskillName()
+      , unit:GetName()
+    }
+    for i, folder in ipairs( folders) do
+        if folder then
+            table.insert( path, folder )
+        end
+    end
+    return path
 end
 
 -------------------------------------------------------------------------------
@@ -247,22 +282,24 @@ function M:data( unit )
         id = unit:GetId()
       , name = unit:GetName()
       , position = unit:GetPosition()
+      , skill_name = unit:GetHarvestRequiredTradeskillName()
+      , skill_tier = unit:GetHarvestRequiredTradeskillTier()
+      , minimap_marker = unit:GetMiniMapMarker()
    }
 end
 
 --------------------------------------------------------------------------------
 function M:entries( path )
     local database = self.database
-    path = table.concat( path, "/")
     self:addPath( path )
     database[path] = database[path] or self.Container:new()
     return database[path]
 end 
 
 --------------------------------------------------------------------------------
-function M:marker()
+function M:marker( data )
     local tInfo =
-    {   strIcon       = "MiniMapMarkerTiny"
+    {   strIcon       = data.minimap_marker or "MiniMapMarkerTiny"
       , strIconEdge   = ""
       , crObject      = CColor.new(1, 1, 1, 1)
       , crEdge        = CColor.new(1, 1, 1, 1)
@@ -278,31 +315,23 @@ function M:add( path, data, marker )
     if self:contains( entries, data ) then return end
     
     self:insert( entries, data )
-    if marker then
-        self:addMarker( data, marker )
-    end
+    self:addMarker( data )
 end 
 
 --------------------------------------------------------------------------------
-function M:addMarker( data, marker )
-    local objectType = 1
+function M:addMarker( data )
+    local objectType = self.objectType
     local tMarkerOptions = { bNeverShowOnEdge = true, bAboveOverlay = false }
+    local marker = self:marker( data )
 
     self.map:AddObject( objectType, data.position, data.name, marker, tMarkerOptions )
 end 
 
 --------------------------------------------------------------------------------
 function M:contains( entries, entry )
-    for i, other in ipairs( entries ) do
-        local pos = Vector3.New( entry.position )
-        local dist = pos - Vector3.New( other.position )
-        dist = dist:Length()
-
-        if dist < self.MIN_NODE_DISTANCE then
-            return true
-        end
-    end 
-    return false
+    local nearest, distance = entries:nearest( entry )
+    
+    return nearest and distance < self.MIN_NODE_DISTANCE_SQUARED
 end 
 
 -------------------------------------------------------------------------------

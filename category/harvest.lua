@@ -60,9 +60,9 @@ function M:data( unit )
 end
 
 -------------------------------------------------------------------------------
-function M:marker( unit )
+function M:marker( data )
     local tInfo =
-    {   strIcon       = unit:GetMiniMapMarker()
+    {   strIcon       = data.minimap_marker
       , strIconEdge   = ""
       , crObject      = CColor.new(1, 1, 1, 1)
       , crEdge        = CColor.new(1, 1, 1, 1)

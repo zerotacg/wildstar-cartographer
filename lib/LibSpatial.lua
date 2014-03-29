@@ -2,14 +2,28 @@
 local LibStub = _G["LibStub"]
 local M = LibStub:NewLibrary( "LibSpatial-0", 0 )
 if ( not M ) then return end
+
+--------------------------------------------------------------------------------
+function M:axisXYZ( axis )
+    if axis == 1 then
+        return self.x
+    end
+    if axis == 2 then
+        return self.y
+    end
+    if axis == 3 then
+        return self.z
+    end
+end 
+
 --------------------------------------------------------------------------------
 M.kdtree = (function()
     require "math"
     require "table"
-
+    
     ----------------------------------------------------------------------------
     local M = {} 
-
+    
     ----------------------------------------------------------------------------
     function M:template( dimensions, axis )
         local T = {
@@ -20,28 +34,28 @@ M.kdtree = (function()
         
         return T
     end
-
+    
     ----------------------------------------------------------------------------
     function M:new( o )
         o = o or {}
         setmetatable( o, { __index = self } )
         assert( o.DIMENSIONS )
         o:init()
-
+    
         return o
     end
-
+    
     ----------------------------------------------------------------------------
     function M:init()
         self.data = {}
         self.size = 0
     end
-
+    
     ----------------------------------------------------------------------------
     function M:axis( axis )
         return self[axis]
     end
-
+    
     ----------------------------------------------------------------------------
     function M:distance( a, b )
         local distance = 0
@@ -52,36 +66,36 @@ M.kdtree = (function()
         end
         return distance
     end
-
+    
     ----------------------------------------------------------------------------
     function M:load( points )
         self:clear()
         self.root = self:node( points, 0 )
     end
-
+    
     ----------------------------------------------------------------------------
     function M:clear()
         self.root = nil
         self.data = {}
         self.size = 0
     end
-
+    
     ----------------------------------------------------------------------------
     function M:reindex()
         self:load( self.data )
     end
-
+    
     ----------------------------------------------------------------------------
     function M:split( points, first, last )
         local result = {}
-
+    
         for i = first, last do
             table.insert( result, points[i] )
         end
-
+    
         return result
     end
-
+    
     ----------------------------------------------------------------------------
     function M:node( points, depth )
         local len = #points
@@ -104,7 +118,7 @@ M.kdtree = (function()
         }
         return node
     end
-
+    
     ----------------------------------------------------------------------------
     function M:find( point )
         local parent  = self
@@ -124,10 +138,10 @@ M.kdtree = (function()
             depth = depth + 1
             axis = ( depth % self.DIMENSIONS ) + 1
         end
-
+    
         return parent, side
     end
-
+    
     ----------------------------------------------------------------------------
     function M:insert( point )
         local parent, side  = self:find( point )
@@ -135,7 +149,7 @@ M.kdtree = (function()
         self.size = self.size + 1
         table.insert( self.data, point )
     end
-
+    
     ----------------------------------------------------------------------------
     function M:min( point, depth, next, current, distance )
         if next ~= nil then
@@ -149,16 +163,15 @@ M.kdtree = (function()
         
         return current, distance
     end
-
+    
     ----------------------------------------------------------------------------
     function M:nearest( point, current, depth )
         current = current or self.root
         depth = depth or 0
-
+    
         if current == nil then return nil end
         
         local axis  = ( depth % self.DIMENSIONS ) + 1
-        
         local coord_point = self.axis( point, axis )
         local coord_current = self.axis( current.location, axis )
         local dir, next, other
@@ -176,15 +189,51 @@ M.kdtree = (function()
         
         current, distance = self:min( point, depth, next, current, distance )
         coord_current = self.axis( current, axis )
-        if other ~= nil
-       and coord_point + math.sqrt( distance ) * dir > self.axis( current, axis )
-      then
-            current, distance = self:min( point, depth, other, current, distance )
+        if other ~= nil then
+            local coord_overlap = coord_point + math.sqrt( distance ) * dir
+            if coord_overlap > self.axis( current, axis ) then
+                current, distance = self:min( point, depth, other, current, distance )
+            end
         end
         
         return current, distance 
     end
-
+    
+    ----------------------------------------------------------------------------
+    function M:containedSphere( point, radius )
+        local points = {}
+        self:containedSphereStep( point, radius, radius*radius, points, self.root, 0 )
+        return points 
+    end
+    
+    ----------------------------------------------------------------------------
+    function M:containedSphereStep( point, radius, radius_square, points, current, depth )
+        if current == nil then return end
+    
+        local axis  = ( depth % self.DIMENSIONS ) + 1
+        local coord_point = self.axis( point, axis )
+        local coord_current = self.axis( current.location, axis )
+        local coord_overlap, next, other
+        if coord_point > coord_current then
+            coord_overlap = coord_point - radius
+            next = current.right
+            other = current.left
+        else
+            coord_overlap = coord_point + radius
+            next = current.left
+            other = current.right
+        end
+        current = current.location
+    
+        if self:distance( point, current ) < radius_square then
+            table.insert( points, current )
+        end
+        self:containedSphereStep( point, radius, radius_square, points, next, depth + 1 )
+        if ( other ~= nil ) and ( coord_overlap > self.axis( current, axis ) ) then
+            self:containedSphereStep( point, radius, radius_square, points, other, depth + 1 )
+        end
+    end
+    
     ----------------------------------------------------------------------------
     return M
 end)()
