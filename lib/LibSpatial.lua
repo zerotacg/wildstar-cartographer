@@ -11,9 +11,10 @@ M.kdtree = (function()
     local M = {} 
 
     ----------------------------------------------------------------------------
-    function M:template( dimensions )
+    function M:template( dimensions, axis )
         local T = {
             DIMENSIONS = dimensions
+          , axis = axis
         }
         setmetatable( T, { __index = self } )
         

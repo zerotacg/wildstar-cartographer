@@ -1,14 +1,25 @@
+require "string"
+require "table"
+
 require "Apollo"
+require "GameLib"
 require "Vector3"
+require "XmlDoc"
 
 local LibStub = _G["LibStub"]
-local LibVentilator = LibStub:GetLibrary( "LibVentilator-0", 0 )
-local LibSpatial    = LibStub:GetLibrary( "LibSpatial-0", 0 )
+local LibMarker = LibStub:GetLibrary( "LibMarker-0", 0 )
+local LibSpatial = LibStub:GetLibrary( "LibSpatial-0", 0 )
 
 --------------------------------------------------------------------------------
+-- @type Gathermate
+-- @field #wildstar.Window wndSettings
+-- @field #wildstar.TreeControl wndDataTree
+-- @field #table database
+-- @field #table nodes
 local M = {
     VERSION = { MAJOR = 0, MINOR = 0, PATCH = 0 }
   , MIN_NODE_DISTANCE = 1.0
+  , Container = LibSpatial.kdtree:template( 3 )
   , enabled = {
         ["Collectible"] = false
       , ["ALL"]         = false
@@ -28,8 +39,10 @@ end
 function M:init()
     self.categories = {}
     self.database = {}
+    self.nodes = {}
+    self.tSelectedNode = nil
 
-    local bHasConfigureFunction = false
+    local bHasConfigureFunction = true
     local strConfigureButtonText = "Gathermate"
     local tDependencies = {
         "MiniMap"
@@ -39,29 +52,68 @@ function M:init()
 end
 
 --------------------------------------------------------------------------------
-function M:clear()
-    self.database = {}
+function M:clear( strPath )
+    local database = self.database
+    local nodes = self.nodes
+    local wndTree = self.wndDataTree
+    strPath = strPath or ""
+
+    for i, path in ipairs( database ) do
+        if string.sub( path, 1, string.len(strPath) ) == strPath then
+            database[path] = nil
+        end
+    end
+
+    for i, path in ipairs( nodes ) do
+        if string.sub( path, 1, string.len(strPath) ) == strPath then
+            wndTree:DeleteNode( nodes[path] )
+            nodes[path] = nil
+        end
+    end
 end
 
 --------------------------------------------------------------------------------
 function M:OnLoad()
     local MiniMap = Apollo.GetAddon("MiniMap")
     local ZoneMap = Apollo.GetAddon("ZoneMap")
-    local subs = {
-        MiniMap = MiniMap.wndMiniMap 
-      , ZoneMap = ZoneMap.wndZoneMap
-    }
 
-    self.map = LibVentilator:new( subs )
+    LibMarker:setMap( "MiniMap", MiniMap.wndMiniMap )
+    LibMarker:setMap( "ZoneMap", ZoneMap.wndZoneMap )
+    self.map = LibMarker
     self.objectType = self.map:CreateOverlayType()
    
-    Apollo.LoadSprites("harvest_sprites.xml")
+    self.xmlDoc = XmlDoc.CreateFromFile("Gathermate.xml")
+    self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 
+    Apollo.LoadSprites("harvest_sprites.xml")
     --Apollo.RegisterSlashCommand("carto", "OnCommand", self)
 
     Apollo.RegisterEventHandler( "UnitCreated", "OnUnitCreated", self )
     --Apollo.RegisterEventHandler("UnitDestroyed", "OnUnitDestroyed", self)
     --Apollo.RegisterEventHandler("UnitActivationTypeChanged", "OnUnitChanged", self)
+end
+
+--------------------------------------------------------------------------------
+function M:OnDocLoaded() 
+    if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
+        self.wndSettings = Apollo.LoadForm( self.xmlDoc, "SettingsWindow", nil, self )
+        if self.wndSettings == nil then
+            Apollo.AddAddonErrorText( self, "Could not load the settings window for some reason." )
+            return
+        end
+        self.wndDataTree = self.wndSettings:FindChild( "DataTree" )
+        if self.wndDataTree == nil then
+            Apollo.AddAddonErrorText( self, "Could not load the settings window for some reason." )
+            return
+        end
+      
+        self.wndSettings:Show( false, true )
+        self.xmlDoc = nil
+
+        for path, entries in pairs( self.database ) do
+            self:addPath( path )
+        end
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -78,20 +130,53 @@ end
 function M:OnRestore(eLevel, tData)
     if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end
     
-    self.database = tData.database or self.database
-
-    --for i, data in ipairs( self.database.Harvest.Mining.TitaniumNode ) do
-    --    self:addMarker( data )
-    --end
-    --self:loadPaths()
+    for path, database in pairs( tData.database ) do
+        local entries = self:entries( path )
+        entries:load( database )
+    end
 end 
 
 --------------------------------------------------------------------------------
 function M:OnConfigure()
+    self.wndSettings:Show( true )
 end 
 
 --------------------------------------------------------------------------------
 function M:OnCommand(strCommand, strParam)
+end
+
+--------------------------------------------------------------------------------
+function M:OnOkClick()
+    self.wndSettings:Show( false )
+end
+
+--------------------------------------------------------------------------------
+function M:OnCancelClick()
+    self.wndSettings:Show( false )
+end
+
+--------------------------------------------------------------------------------
+function M:OnDataTreeSelectionChanged( wndHandler, wndTree, tNewNode, tOldNode )
+    self.tSelectedNode = tNewNode
+    self:updateButtonState()
+end
+
+--------------------------------------------------------------------------------
+function M:updateButtonState()
+    self.wndSettings:FindChild("DeleteButton"):Enable( self.tSelectedNode ~= nil )
+end
+
+--------------------------------------------------------------------------------
+function M:OnDeleteClick()
+    local tNode = self.tSelectedNode
+    local wndTree = self.wndDataTree
+    if tNode ~= nil then
+        local tData = wndTree:GetNodeData( tNode )
+        local strPath = tData.strPath
+        self:clear( strPath )
+        self.tSelectedNode = nil
+    end
+    self:updateButtonState()
 end
 
 --------------------------------------------------------------------------------
@@ -117,6 +202,29 @@ end
 --------------------------------------------------------------------------------
 function M:addCategory( category )
     table.insert( self.categories, category )
+end
+
+--------------------------------------------------------------------------------
+function M:addPath( strPath )
+    local nodes = self.nodes
+    local tCurrent = {}
+    local wndTree = self.wndDataTree
+    local tNode = 0
+    
+    if not wndTree then return end 
+
+    for strFolder in string.gmatch( strPath, "([^/]+)" ) do
+        table.insert( tCurrent, strFolder )
+        local strPath = table.concat( tCurrent, "/")
+        if not nodes[strPath] then
+            local strIcon = nil
+            local tData = { strPath = strPath }
+            tNode = wndTree:AddNode( tNode, strFolder, strIcon, tData )
+            nodes[strPath] = tNode
+            wndTree:CollapseNode( tNode )
+        end
+        tNode = nodes[strPath]
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -146,7 +254,8 @@ end
 function M:entries( path )
     local database = self.database
     path = table.concat( path, "/")
-    database[path] = database[path] or {}
+    self:addPath( path )
+    database[path] = database[path] or self.Container:new()
     return database[path]
 end 
 
@@ -198,7 +307,7 @@ end
 
 -------------------------------------------------------------------------------
 function M:insert( entries, entry )
-    table.insert( entries, entry )
+    entries:insert( entry )
 end 
 
 --------------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <Addon Author="Zerotacg" APIVersion="7" Name="Gathermate" Description="Collect Position information about all kinds of stuff" Version="0.0.0">
     <Script Name="lib/LibStub.lua"/>
-    <Script Name="lib/LibVentilator.lua"/>
     <Script Name="lib/LibSpatial.lua"/>
+    <Script Name="lib/LibMarker.lua"/>
     <Script Name="Gathermate.lua"/>
     <Script Name="category/harvest.lua"/>
     <Form Name="Gathermate.xml"/>

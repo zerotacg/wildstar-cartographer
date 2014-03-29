@@ -27,4 +27,7 @@
     <Sprite Name="NovaciteNode" Cycle="1">
         <Frame Texture="Gathermate\harvest_mining.png" x0="0" x1="0" x2="0" x3="0" x4="0" x5="16" y0="16" y1="16" y2="16" y3="16" y4="16" y5="32" HotspotX="7" HotspotY="7" Duration="1.000" StartColor="white" EndColor="white"/>
     </Sprite>
+    <Sprite Name="ProximityMarker" Cycle="1">
+        <Frame Texture="Gathermate\harvest_mining.png" x0="16" x1="16" x2="16" x3="16" x4="16" x5="32" y0="16" y1="16" y2="16" y3="16" y4="16" y5="32" HotspotX="7" HotspotY="7" Duration="1.000" StartColor="white" EndColor="white"/>
+    </Sprite>
 </Sprites>
