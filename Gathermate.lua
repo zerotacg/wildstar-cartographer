@@ -1,18 +1,23 @@
 require "string"
 require "table"
 
-require "Apollo"
-require "GameLib"
-require "Vector3"
-require "XmlDoc"
+local Apollo  = require "Apollo"
+local GameLib = require "GameLib"
+local XmlDoc  = require "XmlDoc"
 
 local LibStub = _G["LibStub"]
 local LibMarker = LibStub:GetLibrary( "LibMarker-0", 0 )
 local LibSpatial = LibStub:GetLibrary( "LibSpatial-0", 0 )
 
 --------------------------------------------------------------------------------
-local function axisPositionXYZ( self, ...)
-    return LibSpatial.axisXYZ( self.position, ... )
+local function axis( self, axis )
+    self = self.position or self
+    if axis == 1 then
+        return self.x
+    end
+    if axis == 2 then
+        return self.z
+    end
 end 
 
 --------------------------------------------------------------------------------
@@ -20,18 +25,35 @@ end
 -- @field #wildstar.Window wndSettings
 -- @field #wildstar.TreeControl wndDataTree
 -- @field #table database
+-- @field #table enabled
 -- @field #table nodes
+-- @field #wildstar.Handle tSelectedNode
 local M = {
     VERSION = { MAJOR = 0, MINOR = 0, PATCH = 0 }
   , MIN_NODE_DISTANCE = 1.0
-  , Container = LibSpatial.kdtree:template( 3, axisPositionXYZ )
+  , MAX_MARKER_DISTANCE = 4096.0
+  , MIN_MARKER_DISTANCE = 128.0
+  , loaded = false
+  , Container = LibSpatial.kdtree:template( 2, axis )
   , enabled = {
-        ["Collectible"]           = false
-      , ["Harvest/Mining"]        = true
-      , ["Harvest/Relic Hunter"]  = true
-      , ["Harvest/Farmer"]        = true
-      , ["Harvest/Survivalist"]   = true
-      , ["Harvest"]               = true
+        ["Collectible"]             = false
+      , ["Harvest"] = {
+            ["Mining"] = {
+                ["IronNode"]        = true
+              , ["TitaniumNode"]    = true
+              , ["ZephyriteNode"]   = true
+              , ["PlatinumNode"]    = true
+              , ["HydrogemNode"]    = true
+              , ["XenociteNode"]    = true
+              , ["ShadeslateNode"]  = true
+              , ["GalactiumNode"]   = true
+              , ["NovaciteNode"]    = true
+            }
+        }
+      , ["Simple"]        = {
+            ["DATACUBES"] = true
+          , ["TALES"] = true
+        }
       , ["All"]                   = false
     }
 } 
@@ -50,6 +72,7 @@ end
 function M:init()
     self.database = {}
     self.nodes = {}
+    self.current = {}
     self.tSelectedNode = nil
 
     local bHasConfigureFunction = true
@@ -118,6 +141,10 @@ function M:OnLoad()
     --Apollo.RegisterSlashCommand("carto", "OnCommand", self)
 
     Apollo.RegisterEventHandler( "UnitCreated", "OnUnitCreated", self )
+    Apollo.RegisterTimerHandler( "UpdatePositionTimer", "OnUpdatePosition", self)
+    
+    Apollo.CreateTimer( "UpdatePositionTimer", 0.5, true )
+    Apollo.StopTimer( "UpdatePositionTimer" )
     --Apollo.RegisterEventHandler("UnitDestroyed", "OnUnitDestroyed", self)
     --Apollo.RegisterEventHandler("UnitActivationTypeChanged", "OnUnitChanged", self)
 end
@@ -140,6 +167,7 @@ function M:OnDocLoaded()
         self.xmlDoc = nil
         
         self:buildTree()
+        Apollo.StartTimer( "UpdatePositionTimer" )
     end
 end
 
@@ -230,6 +258,28 @@ function M:OnUnitCreated( unit )
 end 
 
 --------------------------------------------------------------------------------
+function M:OnUpdatePosition()
+    local unit = GameLib.GetPlayerUnit()
+    if not unit then return end
+    
+    for i, entry in ipairs( self.current ) do
+        self.map:RemoveObject( entry )
+    end
+    
+    -- GetCurrentZoneIndex
+
+    local data = self:data( unit )
+    local show = {}
+    for k, entries in pairs( self.database ) do
+        for i, entry in ipairs( entries:containedSphere( data, self.MAX_MARKER_DISTANCE) ) do
+            table.insert( show, self:addMarker( entry ) )
+        end
+    end
+    
+    self.current = show
+end 
+
+--------------------------------------------------------------------------------
 function M:addPath( strPath )
     local nodes = self.nodes
     local wndTree = self.wndDataTree
@@ -254,22 +304,49 @@ end
 
 -------------------------------------------------------------------------------
 function M:accepts( unit )
-    local type = unit:GetType()
-    local enabled = self.enabled[type]
-    if enabled ~= nil then return enabled end 
+    local tZoneInfo = GameLib.GetCurrentZoneMap()
+    if not tZoneInfo then return false end
 
+    if true then return true end
+
+    local path = self:path( unit )
+    local enabled = self.enabled[path]
+    if enabled ~= nil then return enabled end 
+    
     return self.enabled.ALL
 end
 
 -------------------------------------------------------------------------------
+function M:namePrefix( strName )
+    local prefixes = {
+        "TALES"
+      , "DATACUBE"
+    }
+    
+    for i, prefix in ipairs( prefixes ) do
+        if string.sub( strName, 1, string.len( prefix ) ) == prefix then
+            return prefix
+        end
+    end
+    return nil
+end
+
+-------------------------------------------------------------------------------
+function M:type( unit )
+    return self:namePrefix( unit:GetName() ) or unit:GetHarvestRequiredTradeskillName() or unit:GetType()
+end
+
+-------------------------------------------------------------------------------
 function M:path( unit )
-    local path    = { unit:GetType() }
-    local folders = {
-        unit:GetHarvestRequiredTradeskillName()
-      , unit:GetName()
+    local tZoneInfo = GameLib.GetCurrentZoneMap()
+    local path      = {}
+    local folders   = {
+        self:type( unit )
+      , tZoneInfo.strName or ""-- id
+      , unit:GetMiniMapMarker() or unit:GetName() or ""
     }
     for i, folder in ipairs( folders) do
-        if folder then
+        if folder ~= "" then
             table.insert( path, folder )
         end
     end
@@ -289,11 +366,14 @@ function M:data( unit )
 end
 
 --------------------------------------------------------------------------------
-function M:entries( path )
+-- @param self
+-- @param #string strPath
+function M:entries( strPath )
     local database = self.database
-    self:addPath( path )
-    database[path] = database[path] or self.Container:new()
-    return database[path]
+    self:addPath( strPath )
+    database[strPath] = database[strPath] or self.Container:new()
+
+    return database[strPath]
 end 
 
 --------------------------------------------------------------------------------
@@ -315,7 +395,6 @@ function M:add( path, data, marker )
     if self:contains( entries, data ) then return end
     
     self:insert( entries, data )
-    self:addMarker( data )
 end 
 
 --------------------------------------------------------------------------------
@@ -324,7 +403,7 @@ function M:addMarker( data )
     local tMarkerOptions = { bNeverShowOnEdge = true, bAboveOverlay = false }
     local marker = self:marker( data )
 
-    self.map:AddObject( objectType, data.position, data.name, marker, tMarkerOptions )
+    return self.map:AddObject( objectType, data.position, data.name, marker, tMarkerOptions )
 end 
 
 --------------------------------------------------------------------------------

@@ -58,6 +58,21 @@ function M:AddObject( objectType, ... )
 end
 
 --------------------------------------------------------------------------------
+function M:RemoveObject( id, ... )
+    local result = {}
+    for k, map in pairs( self.maps ) do
+        result[k] = map:RemoveObject( id[k], ... )
+    end
+    return result
+end
+
+--------------------------------------------------------------------------------
+function M:GetZoneInfo( ... )
+    local map = self.maps.ZoneMap
+    return map and map:GetZoneInfo( ... )
+end
+
+--------------------------------------------------------------------------------
 M:new( LibMarker )
 
 --------------------------------------------------------------------------------
