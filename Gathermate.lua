@@ -1,24 +1,15 @@
 require "string"
 require "table"
 
-local Apollo  = require "Apollo"
-local GameLib = require "GameLib"
-local XmlDoc  = require "XmlDoc"
-
-local LibStub = _G["LibStub"]
-local LibMarker = LibStub:GetLibrary( "LibMarker-0", 0 )
-local LibSpatial = LibStub:GetLibrary( "LibSpatial-0", 0 )
-
---------------------------------------------------------------------------------
-local function axis( self, axis )
-    self = self.position or self
-    if axis == 1 then
-        return self.x
-    end
-    if axis == 2 then
-        return self.z
-    end
-end 
+local Apollo      = require "Apollo"
+local GameLib     = require "GameLib"
+local XmlDoc      = require "XmlDoc"
+local LibStub     = _G["LibStub"]
+local LibMarker   = LibStub:GetLibrary( "LibMarker-0", 0 )
+local LibSpatial  = LibStub:GetLibrary( "LibSpatial-0", 0 )
+local ANode       = LibStub:GetLibrary( "Gathermate/ANode-0", 0 )
+local Category    = LibStub:GetLibrary( "Gathermate/Category-0", 0 )
+local Constants   = LibStub:GetLibrary( "Gathermate/Constants-0", 0 )
 
 --------------------------------------------------------------------------------
 -- @type Gathermate
@@ -26,38 +17,14 @@ end
 -- @field #wildstar.TreeControl wndDataTree
 -- @field #table database
 -- @field #table enabled
--- @field #table nodes
 -- @field #wildstar.Handle tSelectedNode
 local M = {
-    VERSION = { MAJOR = 0, MINOR = 0, PATCH = 0 }
-  , MIN_NODE_DISTANCE = 1.0
-  , MAX_MARKER_DISTANCE = 4096.0
-  , MIN_MARKER_DISTANCE = 128.0
-  , loaded = false
-  , Container = LibSpatial.kdtree:template( 2, axis )
-  , enabled = {
-        ["Collectible"]             = false
-      , ["Harvest"] = {
-            ["Mining"] = {
-                ["IronNode"]        = true
-              , ["TitaniumNode"]    = true
-              , ["ZephyriteNode"]   = true
-              , ["PlatinumNode"]    = true
-              , ["HydrogemNode"]    = true
-              , ["XenociteNode"]    = true
-              , ["ShadeslateNode"]  = true
-              , ["GalactiumNode"]   = true
-              , ["NovaciteNode"]    = true
-            }
-        }
-      , ["Simple"]        = {
-            ["DATACUBES"] = true
-          , ["TALES"] = true
-        }
-      , ["All"]                   = false
-    }
+    loaded = false
+  , Container = Constants.Container
+  , Type = Category
 } 
-M.MIN_NODE_DISTANCE_SQUARED = M.MIN_NODE_DISTANCE * M.MIN_NODE_DISTANCE
+local super = ANode
+setmetatable( M, { __index = super } )
 
 --------------------------------------------------------------------------------
 function M:new( o )
@@ -70,10 +37,11 @@ end
 
 --------------------------------------------------------------------------------
 function M:init()
-    self.database = {}
-    self.nodes = {}
+    super.init( self )
     self.current = {}
+    self.enabled = {}
     self.tSelectedNode = nil
+    self.default_category = self:createCategory( "Other", { name = "Other" })
 
     local bHasConfigureFunction = true
     local strConfigureButtonText = "Gathermate"
@@ -82,46 +50,6 @@ function M:init()
       , "ZoneMap"
     }
     Apollo.RegisterAddon( self, bHasConfigureFunction, strConfigureButtonText, tDependencies )
-end
-
---------------------------------------------------------------------------------
-function M:subPath( fullPath, subPath )
-    local folder = subPath .. "/"
-    return fullPath == subPath or string.sub( fullPath, 1, string.len( folder ) ) == folder
-end
-
---------------------------------------------------------------------------------
-function M:clear( strPath )
-    local database = self.database
-    strPath = strPath or ""
-
-    for path in pairs( database ) do
-        if self:subPath( path, strPath ) then
-            database[path] = nil
-        end
-    end
-    
-    local nodes = self.nodes
-    local wndTree = self.wndDataTree
-    if strPath == "" then
-        nodes = {}
-        wndTree:DeleteAll()
-        return
-    end
-    
-    local tNode, parent, folder
-    for strFolder in string.gmatch( strPath, "([^/]+)" ) do
-        parent = nodes
-        folder = strFolder
-        if not nodes[strFolder] then
-            return
-        end
-        tNode = nodes[strFolder].tNode
-        nodes = nodes[strFolder].children
-    end
-    
-    wndTree:DeleteNode( tNode )
-    parent[folder] = nil
 end
 
 --------------------------------------------------------------------------------
@@ -137,16 +65,12 @@ function M:OnLoad()
     self.xmlDoc = XmlDoc.CreateFromFile("Gathermate.xml")
     self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 
-    Apollo.LoadSprites("harvest_sprites.xml")
     --Apollo.RegisterSlashCommand("carto", "OnCommand", self)
 
-    Apollo.RegisterEventHandler( "UnitCreated", "OnUnitCreated", self )
     Apollo.RegisterTimerHandler( "UpdatePositionTimer", "OnUpdatePosition", self)
     
     Apollo.CreateTimer( "UpdatePositionTimer", 0.5, true )
     Apollo.StopTimer( "UpdatePositionTimer" )
-    --Apollo.RegisterEventHandler("UnitDestroyed", "OnUnitDestroyed", self)
-    --Apollo.RegisterEventHandler("UnitActivationTypeChanged", "OnUnitChanged", self)
 end
 
 --------------------------------------------------------------------------------
@@ -162,7 +86,7 @@ function M:OnDocLoaded()
             Apollo.AddAddonErrorText( self, "Could not load the settings window for some reason." )
             return
         end
-      
+        
         self.wndSettings:Show( false, true )
         self.xmlDoc = nil
         
@@ -175,14 +99,9 @@ end
 function M:OnSave(eLevel) 
     if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end 
     
-    local database = {}
-    for path, entries in pairs( self.database ) do
-        database[path] = entries.data
-    end
-    
     return {
         VERSION = self.VERSION
-      , database = database
+      , database = self:save()
     }
 end 
 
@@ -190,10 +109,7 @@ end
 function M:OnRestore(eLevel, tData)
     if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end
     
-    for path, database in pairs( tData.database ) do
-        local entries = self:entries( path )
-        entries:load( database )
-    end
+    self:load( tData.database )
 end 
 
 --------------------------------------------------------------------------------
@@ -228,10 +144,24 @@ end
 
 --------------------------------------------------------------------------------
 function M:buildTree()
-    self.nodes = {}
-    self.wndDataTree:DeleteAll()
-    for path, entries in pairs( self.database ) do
-        self:addPath( path )
+    local wndTree = self.wndDataTree
+
+    if not wndTree then return end 
+    wndTree:DeleteAll()
+
+    for id, category in pairs( self.database ) do
+        local strName = category.name
+        local strIcon = category.icon
+        local tData = category
+        local tNode = wndTree:AddNode( 0, strName, strIcon, tData )
+        wndTree:CollapseNode( tNode )
+        for id, type in pairs( category.children ) do
+            local strName = type.name
+            local strIcon = type.icon
+            local tData = type
+            tNode = wndTree:AddNode( tNode, strName, strIcon, tData )
+            wndTree:CollapseNode( tNode )
+        end
     end
 end
 
@@ -241,21 +171,11 @@ function M:OnDeleteClick()
     local wndTree = self.wndDataTree
     if tNode ~= nil then
         local tData = wndTree:GetNodeData( tNode )
-        local strPath = tData.strPath
-        self:clear( strPath )
+        tData:clear()
         self.tSelectedNode = nil
     end
     self:updateButtonState()
 end
-
---------------------------------------------------------------------------------
-function M:OnUnitCreated( unit )
-    if self:accepts( unit ) then
-        local path    = table.concat( self:path( unit ), "/" )
-        local data    = self:data( unit )
-        return self:add( path, data )
-    end
-end 
 
 --------------------------------------------------------------------------------
 function M:OnUpdatePosition()
@@ -278,29 +198,6 @@ function M:OnUpdatePosition()
     
     self.current = show
 end 
-
---------------------------------------------------------------------------------
-function M:addPath( strPath )
-    local nodes = self.nodes
-    local wndTree = self.wndDataTree
-    local current = {}
-    local tNode = 0
-    
-    if not wndTree then return end 
-
-    for strFolder in string.gmatch( strPath, "([^/]+)" ) do
-        table.insert( current, strFolder )
-        if not nodes[strFolder] then
-            local strIcon = nil
-            local tData = { strPath = table.concat( current, "/" ) }
-            tNode = wndTree:AddNode( tNode, strFolder, strIcon, tData )
-            nodes[strFolder] = { tNode = tNode, children = {} }
-            wndTree:CollapseNode( tNode )
-        end
-        tNode = nodes[strFolder].tNode
-        nodes = nodes[strFolder].children
-    end
-end
 
 -------------------------------------------------------------------------------
 function M:accepts( unit )
@@ -333,7 +230,12 @@ end
 
 -------------------------------------------------------------------------------
 function M:type( unit )
-    return self:namePrefix( unit:GetName() ) or unit:GetHarvestRequiredTradeskillName() or unit:GetType()
+    return unit:GetHarvestRequiredTradeskillName() or unit:GetType()
+end
+
+-------------------------------------------------------------------------------
+function M:subtype( unit )
+    return self:namePrefix( unit:GetName() ) or unit:GetMiniMapMarker() or unit:GetName() or ""
 end
 
 -------------------------------------------------------------------------------
@@ -342,8 +244,8 @@ function M:path( unit )
     local path      = {}
     local folders   = {
         self:type( unit )
+      , self:subtype( unit )
       , tZoneInfo.strName or ""-- id
-      , unit:GetMiniMapMarker() or unit:GetName() or ""
     }
     for i, folder in ipairs( folders) do
         if folder ~= "" then
@@ -352,29 +254,6 @@ function M:path( unit )
     end
     return path
 end
-
--------------------------------------------------------------------------------
-function M:data( unit )
-    return {
-        id = unit:GetId()
-      , name = unit:GetName()
-      , position = unit:GetPosition()
-      , skill_name = unit:GetHarvestRequiredTradeskillName()
-      , skill_tier = unit:GetHarvestRequiredTradeskillTier()
-      , minimap_marker = unit:GetMiniMapMarker()
-   }
-end
-
---------------------------------------------------------------------------------
--- @param self
--- @param #string strPath
-function M:entries( strPath )
-    local database = self.database
-    self:addPath( strPath )
-    database[strPath] = database[strPath] or self.Container:new()
-
-    return database[strPath]
-end 
 
 --------------------------------------------------------------------------------
 function M:marker( data )
