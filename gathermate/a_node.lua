@@ -1,6 +1,15 @@
+local GameLib = require "GameLib"
 local LibStub = _G["LibStub"]
-local M = LibStub:NewLibrary( "Gathermate/ANode-0", 0 )
-if ( not M ) then return end
+
+--------------------------------------------------------------------------------
+local ANode = LibStub:NewLibrary( "gathermate/ANode-0", 0 )
+if ( not ANode ) then return end
+
+--------------------------------------------------------------------------------
+local M = {
+    enabled = true
+}
+setmetatable( ANode, { __index = M } )
 
 --------------------------------------------------------------------------------
 function M:new( o )
@@ -13,7 +22,7 @@ end
 
 --------------------------------------------------------------------------------
 function M:init()
-    self:clear()
+    self.children = {}
 end
 
 --------------------------------------------------------------------------------
@@ -25,26 +34,42 @@ end
 
 --------------------------------------------------------------------------------
 function M:create( id, data )
-    local instance = self.types[id] or self.Type:new( data )
+    local instance = self.children[id] or self.Type:new( data )
     self.children[id] = instance
     return instance
 end
 
 --------------------------------------------------------------------------------
-function M:load( data )
-    if not data then return end
+function M:getNodes( ... )
+    local nodes = {}
+    for id, child in pairs( self.children ) do
+        if child.enabled then
+            for i, node in ipairs( child:getNodes( ... ) ) do
+                table.insert( nodes, node )
+            end
+        end
+    end
+    
+    return nodes
+end
+
+--------------------------------------------------------------------------------
+function M:OnRestore( eLevel, tData )
+    if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end
+    if ( not tData ) then return end
     
     for id, child in pairs( self.children ) do
-        child:load( data[id] )
+        child:OnRestore( eLevel, tData[id] )
     end
 end
 
 --------------------------------------------------------------------------------
-function M:save()
+function M:OnSave( eLevel )
+    if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end
+
     local data = {}
-    
     for id, child in pairs( self.children ) do
-        data[id] = child:save()
+        data[id] = child:OnSave( eLevel )
     end
 
     return data

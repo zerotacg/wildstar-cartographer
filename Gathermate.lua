@@ -7,16 +7,16 @@ local XmlDoc      = require "XmlDoc"
 local LibStub     = _G["LibStub"]
 local LibMarker   = LibStub:GetLibrary( "LibMarker-0", 0 )
 local LibSpatial  = LibStub:GetLibrary( "LibSpatial-0", 0 )
-local ANode       = LibStub:GetLibrary( "Gathermate/ANode-0", 0 )
-local Category    = LibStub:GetLibrary( "Gathermate/Category-0", 0 )
-local Constants   = LibStub:GetLibrary( "Gathermate/Constants-0", 0 )
+local ANode       = LibStub:GetLibrary( "gathermate/ANode-0", 0 )
+local Category    = LibStub:GetLibrary( "gathermate/Category-0", 0 )
+local Constants   = LibStub:GetLibrary( "gathermate/Constants-0", 0 )
+local Harvest     = LibStub:GetLibrary( "gathermate/collector/Harvest-0", 0 )
+local Lore        = LibStub:GetLibrary( "gathermate/collector/Lore-0", 0 )
 
 --------------------------------------------------------------------------------
 -- @type Gathermate
 -- @field #wildstar.Window wndSettings
 -- @field #wildstar.TreeControl wndDataTree
--- @field #table database
--- @field #table enabled
 -- @field #wildstar.Handle tSelectedNode
 local M = {
     loaded = false
@@ -38,10 +38,8 @@ end
 --------------------------------------------------------------------------------
 function M:init()
     super.init( self )
-    self.current = {}
-    self.enabled = {}
+    self.current = self.Container:new()
     self.tSelectedNode = nil
-    self.default_category = self:createCategory( "Other", { name = "Other" })
 
     local bHasConfigureFunction = true
     local strConfigureButtonText = "Gathermate"
@@ -64,8 +62,15 @@ function M:OnLoad()
    
     self.xmlDoc = XmlDoc.CreateFromFile("Gathermate.xml")
     self.xmlDoc:RegisterCallback("OnDocLoaded", self)
+    
+    Harvest:new()
+    Lore:new()
 
     --Apollo.RegisterSlashCommand("carto", "OnCommand", self)
+
+    Apollo.RegisterEventHandler( "VarChange_ZoneName", "OnZoneChange", self )
+    Apollo.RegisterEventHandler( "SubZoneChanged"    , "OnZoneChange", self )
+    --Event_FireGenericEvent("GenericEvent_ZoneMap_ZoneChanged", idCurrentZone)
 
     Apollo.RegisterTimerHandler( "UpdatePositionTimer", "OnUpdatePosition", self)
     
@@ -75,42 +80,26 @@ end
 
 --------------------------------------------------------------------------------
 function M:OnDocLoaded() 
-    if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
-        self.wndSettings = Apollo.LoadForm( self.xmlDoc, "SettingsWindow", nil, self )
-        if self.wndSettings == nil then
-            Apollo.AddAddonErrorText( self, "Could not load the settings window for some reason." )
-            return
-        end
-        self.wndDataTree = self.wndSettings:FindChild( "DataTree" )
-        if self.wndDataTree == nil then
-            Apollo.AddAddonErrorText( self, "Could not load the settings window for some reason." )
-            return
-        end
-        
-        self.wndSettings:Show( false, true )
-        self.xmlDoc = nil
-        
-        self:buildTree()
-        Apollo.StartTimer( "UpdatePositionTimer" )
+    if not self.xmlDoc or not self.xmlDoc:IsLoaded() then return end
+
+    self.wndSettings = Apollo.LoadForm( self.xmlDoc, "SettingsWindow", nil, self )
+    if self.wndSettings == nil then
+        Apollo.AddAddonErrorText( self, "Could not load the settings window for some reason." )
+        return
     end
+    self.wndDataTree = self.wndSettings:FindChild( "DataTree" )
+    if self.wndDataTree == nil then
+        Apollo.AddAddonErrorText( self, "Could not load the settings window for some reason." )
+        return
+    end
+    
+    self.wndSettings:Show( false, true )
+    self.xmlDoc = nil
+    
+    self:buildTree()
+    Apollo.StartTimer( "UpdatePositionTimer" )
+    self:OnZoneChange()
 end
-
---------------------------------------------------------------------------------
-function M:OnSave(eLevel) 
-    if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end 
-    
-    return {
-        VERSION = self.VERSION
-      , database = self:save()
-    }
-end 
-
---------------------------------------------------------------------------------
-function M:OnRestore(eLevel, tData)
-    if ( eLevel ~= GameLib.CodeEnumAddonSaveLevel.General ) then return end
-    
-    self:load( tData.database )
-end 
 
 --------------------------------------------------------------------------------
 function M:OnConfigure()
@@ -149,17 +138,18 @@ function M:buildTree()
     if not wndTree then return end 
     wndTree:DeleteAll()
 
-    for id, category in pairs( self.database ) do
+    for id, category in pairs( self.children ) do
         local strName = category.name
-        local strIcon = category.icon
+        local strIcon = category.strIcon
         local tData = category
         local tNode = wndTree:AddNode( 0, strName, strIcon, tData )
+        local tParentNode = tNode
         wndTree:CollapseNode( tNode )
         for id, type in pairs( category.children ) do
             local strName = type.name
-            local strIcon = type.icon
+            local strIcon = type.strIcon
             local tData = type
-            tNode = wndTree:AddNode( tNode, strName, strIcon, tData )
+            tNode = wndTree:AddNode( tParentNode, strName, strIcon, tData )
             wndTree:CollapseNode( tNode )
         end
     end
@@ -178,123 +168,48 @@ function M:OnDeleteClick()
 end
 
 --------------------------------------------------------------------------------
+function M:OnZoneChange()
+    for i, entry in ipairs( self.current.data ) do
+        self.map:RemoveObject( entry.marker )
+    end
+    
+    local zone = self:zone() 
+    local show = {}
+    for i, node in ipairs( self:getNodes( zone ) ) do
+        table.insert( show, self:addMarker( node ) )
+    end
+    self.current:load( show )
+end 
+
+--------------------------------------------------------------------------------
 function M:OnUpdatePosition()
     local unit = GameLib.GetPlayerUnit()
     if not unit then return end
     
-    for i, entry in ipairs( self.current ) do
-        self.map:RemoveObject( entry )
-    end
-    
-    -- GetCurrentZoneIndex
+    self:OnZoneChange()
+end
 
-    local data = self:data( unit )
-    local show = {}
-    for k, entries in pairs( self.database ) do
-        for i, entry in ipairs( entries:containedSphere( data, self.MAX_MARKER_DISTANCE) ) do
-            table.insert( show, self:addMarker( entry ) )
-        end
-    end
-    
-    self.current = show
-end 
-
--------------------------------------------------------------------------------
-function M:accepts( unit )
+--------------------------------------------------------------------------------
+function M:zone()
     local tZoneInfo = GameLib.GetCurrentZoneMap()
-    if not tZoneInfo then return false end
-
-    if true then return true end
-
-    local path = self:path( unit )
-    local enabled = self.enabled[path]
-    if enabled ~= nil then return enabled end 
+    if not tZoneInfo then return end
     
-    return self.enabled.ALL
-end
-
--------------------------------------------------------------------------------
-function M:namePrefix( strName )
-    local prefixes = {
-        "TALES"
-      , "DATACUBE"
-    }
-    
-    for i, prefix in ipairs( prefixes ) do
-        if string.sub( strName, 1, string.len( prefix ) ) == prefix then
-            return prefix
-        end
-    end
-    return nil
-end
-
--------------------------------------------------------------------------------
-function M:type( unit )
-    return unit:GetHarvestRequiredTradeskillName() or unit:GetType()
-end
-
--------------------------------------------------------------------------------
-function M:subtype( unit )
-    return self:namePrefix( unit:GetName() ) or unit:GetMiniMapMarker() or unit:GetName() or ""
-end
-
--------------------------------------------------------------------------------
-function M:path( unit )
-    local tZoneInfo = GameLib.GetCurrentZoneMap()
-    local path      = {}
-    local folders   = {
-        self:type( unit )
-      , self:subtype( unit )
-      , tZoneInfo.strName or ""-- id
-    }
-    for i, folder in ipairs( folders) do
-        if folder ~= "" then
-            table.insert( path, folder )
-        end
-    end
-    return path
+    return tZoneInfo.strName
 end
 
 --------------------------------------------------------------------------------
-function M:marker( data )
-    local tInfo =
-    {   strIcon       = data.minimap_marker or "MiniMapMarkerTiny"
-      , strIconEdge   = ""
-      , crObject      = CColor.new(1, 1, 1, 1)
-      , crEdge        = CColor.new(1, 1, 1, 1)
-      , bAboveOverlay = false
-    }
-    return tInfo
-end
-
---------------------------------------------------------------------------------
-function M:add( path, data, marker )
-    local entries = self:entries( path )
-    
-    if self:contains( entries, data ) then return end
-    
-    self:insert( entries, data )
-end 
-
---------------------------------------------------------------------------------
-function M:addMarker( data )
+function M:addMarker( node )
     local objectType = self.objectType
     local tMarkerOptions = { bNeverShowOnEdge = true, bAboveOverlay = false }
-    local marker = self:marker( data )
+    local type = node.type
+    local tInfo = type:marker()
+    local entry = {
+        node = node
+      , position = node.position
+      , marker = self.map:AddObject( objectType, node.position, type.name, tInfo, tMarkerOptions )
+    }
 
-    return self.map:AddObject( objectType, data.position, data.name, marker, tMarkerOptions )
-end 
-
---------------------------------------------------------------------------------
-function M:contains( entries, entry )
-    local nearest, distance = entries:nearest( entry )
-    
-    return nearest and distance < self.MIN_NODE_DISTANCE_SQUARED
-end 
-
--------------------------------------------------------------------------------
-function M:insert( entries, entry )
-    entries:insert( entry )
+    return entry
 end 
 
 --------------------------------------------------------------------------------

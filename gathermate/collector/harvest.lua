@@ -1,25 +1,25 @@
 local Apollo  = require "Apollo"
 local LibStub = _G["LibStub"]
-local Unit    = LibStub:GetLibrary( "Gathermate/Unit-0", 0 )
+local Unit    = LibStub:GetLibrary( "gathermate/collector/Unit-0", 0 )
 
 -------------------------------------------------------------------------------
-local Harvest = LibStub:NewLibrary( "Gathermate/Harvest-0", 0 )
+local Harvest = LibStub:NewLibrary( "gathermate/collector/Harvest-0", 0 )
 if ( not Harvest ) then return end
 
 -------------------------------------------------------------------------------
 local M = {
-    type = "Harvest"
+    unit_type = "Harvest"
   , categories = {
         ["Mining"]        = {
-            ["IronNode"]        = { name= "Iron Node" }
-          , ["TitaniumNode"]    = { name= "Titanium Node" }
-          , ["ZephyriteNode"]   = { name= "Zephyrite Node" }
-          , ["PlatinumNode"]    = { name= "Platinum Node" }
-          , ["HydrogemNode"]    = { name= "Hydrogem Node" }
-          , ["XenociteNode"]    = { name= "Xenocite Node" }
-          , ["ShadeslateNode"]  = { name= "Shadeslate Node" }
-          , ["GalactiumNode"]   = { name= "Galactium Node" }
-          , ["NovaciteNode"]    = { name= "Novacite Node" }
+            ["IronNode"]        = { name= "Iron Node"       , strIcon = "IronNode" }
+          , ["TitaniumNode"]    = { name= "Titanium Node"   , strIcon = "TitaniumNode" }
+          , ["ZephyriteNode"]   = { name= "Zephyrite Node"  , strIcon = "ZephyriteNode" }
+          , ["PlatinumNode"]    = { name= "Platinum Node"   , strIcon = "PlatinumNode" }
+          , ["HydrogemNode"]    = { name= "Hydrogem Node"   , strIcon = "HydrogemNode" }
+          , ["XenociteNode"]    = { name= "Xenocite Node"   , strIcon = "XenociteNode" }
+          , ["ShadeslateNode"]  = { name= "Shadeslate Node" , strIcon = "ShadeslateNode" }
+          , ["GalactiumNode"]   = { name= "Galactium Node"  , strIcon = "GalactiumNode" }
+          , ["NovaciteNode"]    = { name= "Novacite Node"   , strIcon = "NovaciteNode" }
         }
       , ["Relic Hunter"]  = {}
       , ["Farmer"]        = {}
@@ -27,10 +27,11 @@ local M = {
     }
 }
 local super = Unit
+setmetatable( Harvest, { __index = M } )
 setmetatable( M, { __index = super } )
 
 --------------------------------------------------------------------------------
-function M:new()
+function M:new( o )
     o = o or {}
     setmetatable( o, { __index = self } )
     o:init()
@@ -59,15 +60,6 @@ function M:type( unit )
 end 
 
 -------------------------------------------------------------------------------
-function M:data( unit )
-    return {
-        skill_name = unit:GetHarvestRequiredTradeskillName()
-      , skill_tier = unit:GetHarvestRequiredTradeskillTier()
-      , minimap_marker = unit:GetMiniMapMarker()
-    }
-end
-
--------------------------------------------------------------------------------
 function M:marker( data )
     local tInfo =
     {   strIcon       = data.minimap_marker
@@ -80,6 +72,5 @@ function M:marker( data )
 end
 
 -------------------------------------------------------------------------------
-M:new( Harvest )
 
 return M

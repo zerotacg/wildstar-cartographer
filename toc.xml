@@ -5,12 +5,13 @@
     <Script Name="lib/LibMarker.lua"/>
     <Script Name="gathermate/constants.lua"/>
     <Script Name="gathermate/a_node.lua"/>
-    <Script Name="gathermate/node.lua"/>
     <Script Name="gathermate/zone.lua"/>
     <Script Name="gathermate/type.lua"/>
     <Script Name="gathermate/category.lua"/>
+    <Script Name="gathermate/collector.lua"/>
+    <Script Name="gathermate/collector/unit.lua"/>
+    <Script Name="gathermate/collector/harvest.lua"/>
+    <Script Name="gathermate/collector/lore.lua"/>
     <Script Name="Gathermate.lua"/>
-    <Script Name="gathermate/category/harvest.lua"/>
-    <Script Name="gathermate/category/lore.lua"/>
     <Form Name="Gathermate.xml"/>
 </Addon>

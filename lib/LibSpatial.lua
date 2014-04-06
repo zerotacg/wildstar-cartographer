@@ -1,20 +1,8 @@
---------------------------------------------------------------------------------
 local LibStub = _G["LibStub"]
-local M = LibStub:NewLibrary( "LibSpatial-0", 0 )
-if ( not M ) then return end
 
 --------------------------------------------------------------------------------
-function M:axisXYZ( axis )
-    if axis == 1 then
-        return self.x
-    end
-    if axis == 2 then
-        return self.y
-    end
-    if axis == 3 then
-        return self.z
-    end
-end 
+local M = LibStub:NewLibrary( "LibSpatial-0", 0 )
+if ( not M ) then return end
 
 --------------------------------------------------------------------------------
 M.kdtree = (function()
@@ -53,6 +41,7 @@ M.kdtree = (function()
     
     ----------------------------------------------------------------------------
     function M:axis( axis )
+        Print( "LibSpatial::axis")
         return self[axis]
     end
     

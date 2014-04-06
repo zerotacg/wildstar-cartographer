@@ -1,16 +1,15 @@
+local GameLib = require "GameLib"
 local Apollo  = require "Apollo"
 local LibStub = _G["LibStub"]
 
 --------------------------------------------------------------------------------
-local M = LibStub:NewLibrary( "Gathermate/Collector-0", 0 )
+local M = LibStub:NewLibrary( "gathermate/Collector-0", 0 )
 if ( not M ) then return end
 
 --------------------------------------------------------------------------------
 function M:init()
     self.db = Apollo.GetAddon("Gathermate")
     self:createCategories();
-
-    Apollo.RegisterEventHandler( "UnitCreated", "OnUnitCreated", self )
 end
 
 --------------------------------------------------------------------------------
@@ -25,13 +24,11 @@ function M:createCategories()
 end
 
 --------------------------------------------------------------------------------
-function M:save()
-    local data = {}
-    for id, type in pairs( self.types ) do
-        data[id] = type:save();
-    end
-
-    return data
+function M:zone()
+    local tZoneInfo = GameLib.GetCurrentZoneMap()
+    if not tZoneInfo then return end
+    
+    return tZoneInfo.strName
 end
 
 --------------------------------------------------------------------------------

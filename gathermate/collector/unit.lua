@@ -1,10 +1,9 @@
 local Apollo    = require "Apollo"
-local GameLib   = require "GameLib"
 local LibStub   = _G["LibStub"]
-local Collector = LibStub:GetLibrary( "Gathermate/Collector-0", 0 )
+local Collector = LibStub:GetLibrary( "gathermate/Collector-0", 0 )
 
 --------------------------------------------------------------------------------
-local M = LibStub:NewLibrary( "Gathermate/Unit-0", 0 )
+local M = LibStub:NewLibrary( "gathermate/collector/Unit-0", 0 )
 if ( not M ) then return end
 local super = Collector
 setmetatable( M, { __index = super } )
@@ -12,21 +11,17 @@ setmetatable( M, { __index = super } )
 --------------------------------------------------------------------------------
 function M:init()
     super.init( self )
-
     Apollo.RegisterEventHandler( "UnitCreated", "OnUnitCreated", self )
 end
 
 --------------------------------------------------------------------------------
 function M:OnUnitCreated( unit )
-    if self.type ~= unit:GetType() then return end
+    if self.unit_type ~= unit:GetType() then return end
     
     local type = self:type( unit )
     if not type then return end
     
-    local tZoneInfo = GameLib.GetCurrentZoneMap()
-    if not tZoneInfo then return end
-    
-    type:addNode( tZoneInfo.strName, self:data( unit ) )
+    type:addNode( self:zone(), self:data( unit ) )
 end
 
 --------------------------------------------------------------------------------

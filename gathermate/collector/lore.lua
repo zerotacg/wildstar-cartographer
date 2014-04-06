@@ -1,25 +1,26 @@
 local LibStub = _G["LibStub"]
-local Unit    = LibStub:GetLibrary( "Gathermate/Unit-0", 0 )
+local Unit    = LibStub:GetLibrary( "gathermate/collector/Unit-0", 0 )
 
 -------------------------------------------------------------------------------
-local Simple = LibStub:NewLibrary( "Gathermate/Simple-0", 0 )
-if ( not Simple ) then return end
+local Lore = LibStub:NewLibrary( "gathermate/collector/Lore-0", 0 )
+if ( not Lore ) then return end
 
 -------------------------------------------------------------------------------
 local M = {
-    type = "Simple"
+    unit_type = "Simple"
   , categories = {
         ["Lore"] = {
-            ["DATACUBE"]  = { name= "Datacube", strIcon = "MiniMapMarkerTiny" }
-          , ["TALES"]     = { name= "Tales"   , strIcon = "MiniMapMarkerTiny" }
+            ["DATACUBE"]  = { name= "Datacube" }
+          , ["TALES"]     = { name= "Tales"    }
         }
     }
 }
 local super = Unit
+setmetatable( Lore, { __index = M } )
 setmetatable( M, { __index = super } )
 
 --------------------------------------------------------------------------------
-function M:new()
+function M:new( o )
     o = o or {}
     setmetatable( o, { __index = self } )
     o:init()
@@ -40,6 +41,4 @@ function M:type( unit )
 end 
 
 -------------------------------------------------------------------------------
-M:new( Simple )
-
 return M

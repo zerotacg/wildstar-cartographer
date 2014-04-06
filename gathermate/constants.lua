@@ -2,7 +2,7 @@ local LibStub     = _G["LibStub"]
 local LibSpatial  = LibStub:GetLibrary( "LibSpatial-0", 0 )
 
 --------------------------------------------------------------------------------
-local Constants = LibStub:NewLibrary( "Gathermate/Constants-0", 0 )
+local Constants = LibStub:NewLibrary( "gathermate/Constants-0", 0 )
 if ( not Constants ) then return end
 
 --------------------------------------------------------------------------------
