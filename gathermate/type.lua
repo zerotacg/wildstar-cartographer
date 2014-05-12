@@ -40,7 +40,11 @@ function M:getNodes( strZone )
     if strZone then
         local zone = self:create( strZone )
         for i, node in ipairs( zone.nodes.data ) do
-            table.insert( nodes, { type = self, position = node.position } )
+            table.insert( nodes, {
+                tInfo = self:marker()
+              , position = node.position
+              , name = self.name or node.name
+            })
         end
     end
     return nodes

@@ -201,12 +201,11 @@ end
 function M:addMarker( node )
     local objectType = self.objectType
     local tMarkerOptions = { bNeverShowOnEdge = true, bAboveOverlay = false }
-    local type = node.type
-    local tInfo = type:marker()
+    local tInfo = node.tInfo
     local entry = {
         node = node
       , position = node.position
-      , marker = self.map:AddObject( objectType, node.position, type.name, tInfo, tMarkerOptions )
+      , marker = self.map:AddObject( objectType, node.position, node.name, tInfo, tMarkerOptions )
     }
 
     return entry
