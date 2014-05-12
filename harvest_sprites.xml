@@ -13,7 +13,7 @@
         <Frame Texture="Gathermate\harvest_mining.png" x0="48" x1="48" x2="48" x3="48" x4="48" x5="64" y0="0" y1="0" y2="0" y3="0" y4="0" y5="16" HotspotX="7" HotspotY="7" Duration="1.000" StartColor="white" EndColor="white"/>
     </Sprite>
     <Sprite Name="HydrogemNode" Cycle="1">
-        <Frame Texture="Gathermate\harvest_mining.png" x0="48" x1="48" x2="48" x3="48" x4="48" x5="64" y0="0" y1="0" y2="0" y3="0" y4="0" y5="16" HotspotX="7" HotspotY="7" Duration="1.000" StartColor="white" EndColor="white"/>
+        <Frame Texture="Gathermate\harvest_mining.png" x0="64" x1="64" x2="64" x3="64" x4="64" x5="80" y0="0" y1="0" y2="0" y3="0" y4="0" y5="16" HotspotX="7" HotspotY="7" Duration="1.000" StartColor="white" EndColor="white"/>
     </Sprite>
     <Sprite Name="XenociteNode" Cycle="1">
         <Frame Texture="Gathermate\harvest_mining.png" x0="80" x1="80" x2="80" x3="80" x4="80" x5="96" y0="0" y1="0" y2="0" y3="0" y4="0" y5="16" HotspotX="8" HotspotY="9" Duration="1.000" StartColor="white" EndColor="white"/>
