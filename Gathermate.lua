@@ -12,6 +12,7 @@ local Category    = LibStub:GetLibrary( "gathermate/Category-0", 0 )
 local Constants   = LibStub:GetLibrary( "gathermate/Constants-0", 0 )
 local Harvest     = LibStub:GetLibrary( "gathermate/collector/Harvest-0", 0 )
 local Lore        = LibStub:GetLibrary( "gathermate/collector/Lore-0", 0 )
+local Npc         = LibStub:GetLibrary( "gathermate/collector/Npc-0", 0 )
 
 --------------------------------------------------------------------------------
 -- @type Gathermate
@@ -20,6 +21,7 @@ local Lore        = LibStub:GetLibrary( "gathermate/collector/Lore-0", 0 )
 -- @field #wildstar.Handle tSelectedNode
 local M = {
     loaded = false
+  , map = LibMarker
   , Container = Constants.Container
   , Type = Category
 } 
@@ -52,19 +54,12 @@ end
 
 --------------------------------------------------------------------------------
 function M:OnLoad()
-    local MiniMap = Apollo.GetAddon("MiniMap")
-    local ZoneMap = Apollo.GetAddon("ZoneMap")
-
-    LibMarker:setMap( "MiniMap", MiniMap.wndMiniMap )
-    LibMarker:setMap( "ZoneMap", ZoneMap.wndZoneMap )
-    self.map = LibMarker
-    self.objectType = self.map:CreateOverlayType()
-   
     self.xmlDoc = XmlDoc.CreateFromFile("Gathermate.xml")
     self.xmlDoc:RegisterCallback("OnDocLoaded", self)
     
     Harvest:new()
     Lore:new()
+    Npc:new()
 
     --Apollo.RegisterSlashCommand("carto", "OnCommand", self)
 
@@ -76,6 +71,11 @@ function M:OnLoad()
     
     Apollo.CreateTimer( "UpdatePositionTimer", 0.5, true )
     Apollo.StopTimer( "UpdatePositionTimer" )
+
+    Apollo.RegisterTimerHandler( "MapsLoadedTimer", "OnMapsLoaded", self)
+    
+    Apollo.CreateTimer( "MapsLoadedTimer", 1.0, true )
+    --Apollo.StartTimer( "MapsLoadedTimer" )
 end
 
 --------------------------------------------------------------------------------
@@ -124,6 +124,20 @@ end
 function M:OnDataTreeSelectionChanged( wndHandler, wndTree, tNewNode, tOldNode )
     self.tSelectedNode = tNewNode
     self:updateButtonState()
+end
+
+--------------------------------------------------------------------------------
+function M:OnMapsLoaded()
+    local MiniMap = Apollo.GetAddon("MiniMap")
+    local ZoneMap = Apollo.GetAddon("ZoneMap")
+    
+    if not MiniMap.wndMiniMap then return; end
+    if not ZoneMap.wndZoneMap then return; end
+    Apollo.StopTimer( "MapsLoadedTimer" )
+
+    LibMarker:setMap( "MiniMap", MiniMap.wndMiniMap )
+    LibMarker:setMap( "ZoneMap", ZoneMap.wndZoneMap )
+    self.objectType = self.map:CreateOverlayType()
 end
 
 --------------------------------------------------------------------------------
@@ -201,11 +215,10 @@ end
 function M:addMarker( node )
     local objectType = self.objectType
     local tMarkerOptions = { bNeverShowOnEdge = true, bAboveOverlay = false }
-    local tInfo = node.tInfo
     local entry = {
         node = node
       , position = node.position
-      , marker = self.map:AddObject( objectType, node.position, node.name, tInfo, tMarkerOptions )
+      , marker = self.map:AddObject( objectType, node.position, node.name, node.tInfo, tMarkerOptions )
     }
 
     return entry

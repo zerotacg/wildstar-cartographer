@@ -12,6 +12,7 @@
     <Script Name="gathermate/collector/unit.lua"/>
     <Script Name="gathermate/collector/harvest.lua"/>
     <Script Name="gathermate/collector/lore.lua"/>
+    <Script Name="gathermate/collector/npc.lua"/>
     <Script Name="Gathermate.lua"/>
     <Form Name="Gathermate.xml"/>
 </Addon>

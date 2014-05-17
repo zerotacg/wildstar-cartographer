@@ -37,7 +37,7 @@ function M:data( unit )
       , position = unit:GetPosition()
       , skill_name = unit:GetHarvestRequiredTradeskillName()
       , skill_tier = unit:GetHarvestRequiredTradeskillTier()
-      , minimap_marker = unit:GetMiniMapMarker()
+      , minimap_marker = unit:GetMiniMapMarkers()[1]
    }
 end
 

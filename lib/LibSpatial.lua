@@ -41,7 +41,6 @@ M.kdtree = (function()
     
     ----------------------------------------------------------------------------
     function M:axis( axis )
-        Print( "LibSpatial::axis")
         return self[axis]
     end
     

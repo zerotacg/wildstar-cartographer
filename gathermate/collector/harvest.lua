@@ -11,15 +11,15 @@ local M = {
     unit_type = "Harvest"
   , categories = {
         ["Mining"]        = {
-            ["IronNode"]        = { name= "Iron Node"       , strIcon = "IronNode" }
-          , ["TitaniumNode"]    = { name= "Titanium Node"   , strIcon = "TitaniumNode" }
-          , ["ZephyriteNode"]   = { name= "Zephyrite Node"  , strIcon = "ZephyriteNode" }
-          , ["PlatinumNode"]    = { name= "Platinum Node"   , strIcon = "PlatinumNode" }
-          , ["HydrogemNode"]    = { name= "Hydrogem Node"   , strIcon = "HydrogemNode" }
-          , ["XenociteNode"]    = { name= "Xenocite Node"   , strIcon = "XenociteNode" }
-          , ["ShadeslateNode"]  = { name= "Shadeslate Node" , strIcon = "ShadeslateNode" }
-          , ["GalactiumNode"]   = { name= "Galactium Node"  , strIcon = "GalactiumNode" }
-          , ["NovaciteNode"]    = { name= "Novacite Node"   , strIcon = "NovaciteNode" }
+            ["IronNode"]        = { name= "Iron Node"       , strIcon = "harvest_sprites:IronNode" }
+          , ["TitaniumNode"]    = { name= "Titanium Node"   , strIcon = "harvest_sprites:TitaniumNode" }
+          , ["ZephyriteNode"]   = { name= "Zephyrite Node"  , strIcon = "harvest_sprites:ZephyriteNode" }
+          , ["PlatinumNode"]    = { name= "Platinum Node"   , strIcon = "harvest_sprites:PlatinumNode" }
+          , ["HydrogemNode"]    = { name= "Hydrogem Node"   , strIcon = "harvest_sprites:HydrogemNode" }
+          , ["XenociteNode"]    = { name= "Xenocite Node"   , strIcon = "harvest_sprites:XenociteNode" }
+          , ["ShadeslateNode"]  = { name= "Shadeslate Node" , strIcon = "harvest_sprites:ShadeslateNode" }
+          , ["GalactiumNode"]   = { name= "Galactium Node"  , strIcon = "harvest_sprites:GalactiumNode" }
+          , ["NovaciteNode"]    = { name= "Novacite Node"   , strIcon = "harvest_sprites:NovaciteNode" }
         }
       , ["Relic Hunter"]  = {}
       , ["Farmer"]        = {}
@@ -51,18 +51,14 @@ function M:type( unit )
     category = self.categories[category];
     if not category then return end
     
-    local category = unit:GetHarvestRequiredTradeskillName()
-    category = self.categories[category];
-    if not category then return end
-    
-    local type = unit:GetMiniMapMarker()
+    local type = unit:GetMiniMapMarkers()[1]
     return category[type];
 end 
 
 -------------------------------------------------------------------------------
 function M:marker( data )
     local tInfo =
-    {   strIcon       = data.minimap_marker
+    {   strIcon       = "harvest_sprites:" .. data.minimap_marker
       , strIconEdge   = ""
       , crObject      = CColor.new(1, 1, 1, 1)
       , crEdge        = CColor.new(1, 1, 1, 1)

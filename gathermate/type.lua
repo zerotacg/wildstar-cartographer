@@ -9,7 +9,7 @@ if ( not Type ) then return end
 
 --------------------------------------------------------------------------------
 local M = {
-    strIcon = "MiniMapMarkerTiny"
+    strIcon = "ClientSprites:MiniMapMarkerTiny"
   , strIconEdge   = ""
   , crObject      = CColor.new(1, 1, 1, 1)
   , crEdge        = CColor.new(1, 1, 1, 1)
