@@ -7,15 +7,15 @@ local XmlDoc      = require "XmlDoc"
 local LibStub     = _G["LibStub"]
 local LibMarker   = LibStub:GetLibrary( "LibMarker-0", 0 )
 local LibSpatial  = LibStub:GetLibrary( "LibSpatial-0", 0 )
-local ANode       = LibStub:GetLibrary( "gathermate/ANode-0", 0 )
-local Category    = LibStub:GetLibrary( "gathermate/Category-0", 0 )
-local Constants   = LibStub:GetLibrary( "gathermate/Constants-0", 0 )
-local Harvest     = LibStub:GetLibrary( "gathermate/collector/Harvest-0", 0 )
-local Lore        = LibStub:GetLibrary( "gathermate/collector/Lore-0", 0 )
-local Npc         = LibStub:GetLibrary( "gathermate/collector/Npc-0", 0 )
+local ANode       = LibStub:GetLibrary( "cartographer/ANode-0", 0 )
+local Category    = LibStub:GetLibrary( "cartographer/Category-0", 0 )
+local Constants   = LibStub:GetLibrary( "cartographer/Constants-0", 0 )
+local Harvest     = LibStub:GetLibrary( "cartographer/collector/Harvest-0", 0 )
+local Lore        = LibStub:GetLibrary( "cartographer/collector/Lore-0", 0 )
+local Npc         = LibStub:GetLibrary( "cartographer/collector/Npc-0", 0 )
 
 --------------------------------------------------------------------------------
--- @type Gathermate
+-- @type Cartographer
 -- @field #wildstar.Window wndSettings
 -- @field #wildstar.TreeControl wndDataTree
 -- @field #wildstar.Handle tSelectedNode
@@ -44,7 +44,7 @@ function M:init()
     self.tSelectedNode = nil
 
     local bHasConfigureFunction = true
-    local strConfigureButtonText = "Gathermate"
+    local strConfigureButtonText = "Cartographer"
     local tDependencies = {
         "MiniMap"
       , "ZoneMap"
@@ -54,7 +54,7 @@ end
 
 --------------------------------------------------------------------------------
 function M:OnLoad()
-    self.xmlDoc = XmlDoc.CreateFromFile("Gathermate.xml")
+    self.xmlDoc = XmlDoc.CreateFromFile("Cartographer.xml")
     self.xmlDoc:RegisterCallback("OnDocLoaded", self)
     
     Harvest:new()
