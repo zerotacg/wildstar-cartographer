@@ -1,9 +1,9 @@
 local Apollo  = require "Apollo"
 local LibStub = _G["LibStub"]
-local Unit    = LibStub:GetLibrary( "gathermate/collector/Unit-0", 0 )
+local Unit    = LibStub:GetLibrary( "cartographer/collector/Unit-0", 0 )
 
 -------------------------------------------------------------------------------
-local Harvest = LibStub:NewLibrary( "gathermate/collector/Harvest-0", 0 )
+local Harvest = LibStub:NewLibrary( "cartographer/collector/Harvest-0", 0 )
 if ( not Harvest ) then return end
 
 -------------------------------------------------------------------------------

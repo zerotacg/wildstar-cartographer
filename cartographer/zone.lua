@@ -1,9 +1,9 @@
 local GameLib   = require "GameLib"
 local LibStub   = _G["LibStub"]
-local Constants = LibStub:GetLibrary( "gathermate/Constants-0", 0 )
+local Constants = LibStub:GetLibrary( "cartographer/Constants-0", 0 )
 
 --------------------------------------------------------------------------------
-local Zone = LibStub:NewLibrary( "gathermate/Zone-0", 0 )
+local Zone = LibStub:NewLibrary( "cartographer/Zone-0", 0 )
 if ( not Zone ) then return end
 
 --------------------------------------------------------------------------------

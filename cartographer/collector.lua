@@ -3,12 +3,12 @@ local Apollo  = require "Apollo"
 local LibStub = _G["LibStub"]
 
 --------------------------------------------------------------------------------
-local M = LibStub:NewLibrary( "gathermate/Collector-0", 0 )
+local M = LibStub:NewLibrary( "cartographer/Collector-0", 0 )
 if ( not M ) then return end
 
 --------------------------------------------------------------------------------
 function M:init()
-    self.db = Apollo.GetAddon("Gathermate")
+    self.db = Apollo.GetAddon("Cartographer")
     self:createCategories();
 end
 

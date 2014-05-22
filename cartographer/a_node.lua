@@ -2,7 +2,7 @@ local GameLib = require "GameLib"
 local LibStub = _G["LibStub"]
 
 --------------------------------------------------------------------------------
-local ANode = LibStub:NewLibrary( "gathermate/ANode-0", 0 )
+local ANode = LibStub:NewLibrary( "cartographer/ANode-0", 0 )
 if ( not ANode ) then return end
 
 --------------------------------------------------------------------------------

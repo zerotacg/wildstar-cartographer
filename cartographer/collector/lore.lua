@@ -1,8 +1,8 @@
 local LibStub = _G["LibStub"]
-local Unit    = LibStub:GetLibrary( "gathermate/collector/Unit-0", 0 )
+local Unit    = LibStub:GetLibrary( "cartographer/collector/Unit-0", 0 )
 
 -------------------------------------------------------------------------------
-local Lore = LibStub:NewLibrary( "gathermate/collector/Lore-0", 0 )
+local Lore = LibStub:NewLibrary( "cartographer/collector/Lore-0", 0 )
 if ( not Lore ) then return end
 
 -------------------------------------------------------------------------------

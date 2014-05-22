@@ -1,10 +1,10 @@
 local GameLib = require "GameLib"
 local LibStub = _G["LibStub"]
-local ANode   = LibStub:GetLibrary( "gathermate/ANode-0", 0 )
-local Zone    = LibStub:GetLibrary( "gathermate/Zone-0", 0 )
+local ANode   = LibStub:GetLibrary( "cartographer/ANode-0", 0 )
+local Zone    = LibStub:GetLibrary( "cartographer/Zone-0", 0 )
 
 --------------------------------------------------------------------------------
-local Type = LibStub:NewLibrary( "gathermate/Type-0", 0 )
+local Type = LibStub:NewLibrary( "cartographer/Type-0", 0 )
 if ( not Type ) then return end
 
 --------------------------------------------------------------------------------

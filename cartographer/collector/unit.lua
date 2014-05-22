@@ -1,9 +1,9 @@
 local Apollo    = require "Apollo"
 local LibStub   = _G["LibStub"]
-local Collector = LibStub:GetLibrary( "gathermate/Collector-0", 0 )
+local Collector = LibStub:GetLibrary( "cartographer/Collector-0", 0 )
 
 --------------------------------------------------------------------------------
-local M = LibStub:NewLibrary( "gathermate/collector/Unit-0", 0 )
+local M = LibStub:NewLibrary( "cartographer/collector/Unit-0", 0 )
 if ( not M ) then return end
 local super = Collector
 setmetatable( M, { __index = super } )
