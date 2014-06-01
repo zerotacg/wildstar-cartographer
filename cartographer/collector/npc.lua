@@ -11,9 +11,9 @@ local M = {
     unit_type = "NonPlayer"
   , categories = {
         ["Npc"]        = {
-            ["FlightPathSettler"] = { name = "Taxi", strIcon = "IconSprites:Icon_MapNode_Map_Vendor_Flight"    , bNeverShowOnEdge = true, bFixedSizeMedium = true }
-          , ["FlightPath"]        = { name = "Taxi", strIcon = "IconSprites:Icon_MapNode_Map_Taxi_Undiscovered", bNeverShowOnEdge = true, bFixedSizeMedium = true }
-          , ["FlightPathNew"]     = { name = "Taxi", strIcon = "IconSprites:Icon_MapNode_Map_Taxi"             , bNeverShowOnEdge = true, bFixedSizeMedium = true }
+            ["FlightPathSettler"] = { label = "Taxi", strIcon = "IconSprites:Icon_MapNode_Map_Vendor_Flight"    , bNeverShowOnEdge = true, bFixedSizeMedium = true }
+          , ["FlightPath"]        = { label = "Taxi", strIcon = "IconSprites:Icon_MapNode_Map_Taxi_Undiscovered", bNeverShowOnEdge = true, bFixedSizeMedium = true }
+          , ["FlightPathNew"]     = { label = "Taxi", strIcon = "IconSprites:Icon_MapNode_Map_Taxi"             , bNeverShowOnEdge = true, bFixedSizeMedium = true }
         }
     }
 }

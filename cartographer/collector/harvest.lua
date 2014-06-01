@@ -11,15 +11,15 @@ local M = {
     unit_type = "Harvest"
   , categories = {
         ["Mining"]        = {
-            ["IronNode"]        = { name= "Iron Node"       , strIcon = "harvest_sprites:IronNode" }
-          , ["TitaniumNode"]    = { name= "Titanium Node"   , strIcon = "harvest_sprites:TitaniumNode" }
-          , ["ZephyriteNode"]   = { name= "Zephyrite Node"  , strIcon = "harvest_sprites:ZephyriteNode" }
-          , ["PlatinumNode"]    = { name= "Platinum Node"   , strIcon = "harvest_sprites:PlatinumNode" }
-          , ["HydrogemNode"]    = { name= "Hydrogem Node"   , strIcon = "harvest_sprites:HydrogemNode" }
-          , ["XenociteNode"]    = { name= "Xenocite Node"   , strIcon = "harvest_sprites:XenociteNode" }
-          , ["ShadeslateNode"]  = { name= "Shadeslate Node" , strIcon = "harvest_sprites:ShadeslateNode" }
-          , ["GalactiumNode"]   = { name= "Galactium Node"  , strIcon = "harvest_sprites:GalactiumNode" }
-          , ["NovaciteNode"]    = { name= "Novacite Node"   , strIcon = "harvest_sprites:NovaciteNode" }
+            ["IronNode"]        = { label = "Iron Node"       , strIcon = "harvest_sprites:IronNode" }
+          , ["TitaniumNode"]    = { label = "Titanium Node"   , strIcon = "harvest_sprites:TitaniumNode" }
+          , ["ZephyriteNode"]   = { label = "Zephyrite Node"  , strIcon = "harvest_sprites:ZephyriteNode" }
+          , ["PlatinumNode"]    = { label = "Platinum Node"   , strIcon = "harvest_sprites:PlatinumNode" }
+          , ["HydrogemNode"]    = { label = "Hydrogem Node"   , strIcon = "harvest_sprites:HydrogemNode" }
+          , ["XenociteNode"]    = { label = "Xenocite Node"   , strIcon = "harvest_sprites:XenociteNode" }
+          , ["ShadeslateNode"]  = { label = "Shadeslate Node" , strIcon = "harvest_sprites:ShadeslateNode" }
+          , ["GalactiumNode"]   = { label = "Galactium Node"  , strIcon = "harvest_sprites:GalactiumNode" }
+          , ["NovaciteNode"]    = { label = "Novacite Node"   , strIcon = "harvest_sprites:NovaciteNode" }
         }
       , ["Relic Hunter"]  = {}
       , ["Farmer"]        = {}

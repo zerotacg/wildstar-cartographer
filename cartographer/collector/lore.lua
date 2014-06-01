@@ -10,8 +10,8 @@ local M = {
     unit_type = "Simple"
   , categories = {
         ["Lore"] = {
-            ["DATACUBE"]  = { name= "Datacube" }
-          , ["TALES"]     = { name= "Tales"    }
+            ["DATACUBE"]  = { label = "Datacube" }
+          , ["TALES"]     = { label = "Tales"    }
         }
     }
 }

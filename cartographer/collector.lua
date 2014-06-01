@@ -16,7 +16,7 @@ end
 function M:createCategories()
     local db = self.db
     for id, types in pairs( self.categories ) do
-        local category = db:create( id, { name = id } )
+        local category = db:create( id, { label = id } )
         for id, type in pairs( types ) do
             types[id] = category:create( id, type )
         end

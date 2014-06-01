@@ -153,14 +153,14 @@ function M:buildTree()
     wndTree:DeleteAll()
 
     for id, category in pairs( self.children ) do
-        local strName = category.name
+        local strName = category.label
         local strIcon = category.strIcon
         local tData = category
         local tNode = wndTree:AddNode( 0, strName, strIcon, tData )
         local tParentNode = tNode
         wndTree:CollapseNode( tNode )
         for id, type in pairs( category.children ) do
-            local strName = type.name
+            local strName = type.label
             local strIcon = type.strIcon
             local tData = type
             tNode = wndTree:AddNode( tParentNode, strName, strIcon, tData )
