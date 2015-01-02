@@ -137,6 +137,7 @@ function M:OnMapsLoaded()
 
     LibMarker:setMap( "MiniMap", MiniMap.wndMiniMap )
     LibMarker:setMap( "ZoneMap", ZoneMap.wndZoneMap )
+    -- sub_zone = ZoneMap.wndZoneName:GetText() 
     self.objectType = self.map:CreateOverlayType()
 end
 
@@ -165,6 +166,11 @@ function M:buildTree()
             local tData = type
             tNode = wndTree:AddNode( tParentNode, strName, strIcon, tData )
             wndTree:CollapseNode( tNode )
+            for id, zone in pairs( type.children ) do
+                local strName = id .. " (" .. #zone.nodes .. ")"
+                local tZoneNode = wndTree:AddNode( tNode, strName, nil, nil )
+                wndTree:CollapseNode( tZoneNode )
+            end
         end
     end
 end
@@ -182,7 +188,10 @@ function M:OnDeleteClick()
 end
 
 --------------------------------------------------------------------------------
-function M:OnZoneChange()
+function M:OnZoneChange( oVar, strNewZone )
+    --if( strNewZone ) then
+    --    Print("Zone: " .. strNewZone )
+    --end
     for i, entry in ipairs( self.current.data ) do
         self.map:RemoveObject( entry.marker )
     end

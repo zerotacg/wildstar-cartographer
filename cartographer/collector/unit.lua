@@ -16,7 +16,7 @@ end
 
 --------------------------------------------------------------------------------
 function M:OnUnitCreated( unit )
-    if self.unit_type ~= unit:GetType() then return end
+    if self.unit_type ~= nil and self.unit_type ~= unit:GetType() then return end
     
     local type = self:type( unit )
     if not type then return end

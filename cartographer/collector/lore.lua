@@ -7,11 +7,12 @@ if ( not Lore ) then return end
 
 -------------------------------------------------------------------------------
 local M = {
-    unit_type = "Simple"
+    unit_type = nil
   , categories = {
         ["Lore"] = {
             ["DATACUBE"]  = { label = "Datacube" }
           , ["TALES"]     = { label = "Tales"    }
+          , ["Mysterious Apparition"] = { label = "Mysterious Apparition" }
         }
     }
 }
